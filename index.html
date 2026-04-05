@@ -206,23 +206,10 @@ function allDates(){const dates=[...new Set(txns.map(t=>t.date))].sort((a,b)=>ne
 function txnsForDate(d){return txns.filter(t=>t.date===d);}
 
 // ═══ PIN ═══
-function requirePIN(title,callback){
-  if(!settings.pin){callback();return;}
-  _pinCallback=callback;_pinValue='';_pinActive=true;showModal(pinModalHTML(title,''));
-}
+function requirePIN(title,callback){if(!settings.pin){callback();return;}_pinCallback=callback;_pinValue='';_pinActive=true;showModal(pinModalHTML(title,''));}
 function pinModalHTML(title,err){
   const dots=Array.from({length:4},(_,i)=>`<div class="pin-dot${i<_pinValue.length?' filled':''}"></div>`).join('');
-  return `<h3 style="text-align:center">🔐 ${title}</h3>
-    <p style="font-size:12px;color:#888;text-align:center;margin:-8px 0 10px">Enter manager PIN</p>
-    <div class="pin-display">${dots}</div>
-    ${err?`<div style="text-align:center;color:#C0392B;font-size:12px;margin-bottom:8px">${err}</div>`:''}
-    <div class="pin-grid">
-      ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="pin-key" onclick="pinKey('${n}')">${n}</button>`).join('')}
-      <button class="pin-key del" onclick="pinDel()">⌫</button>
-      <button class="pin-key" onclick="pinKey('0')">0</button>
-      <button class="pin-key ok" onclick="pinSubmit()">✓</button>
-    </div>
-    <button class="btn-sec" onclick="pinCancel()">Cancel</button>`;
+  return `<h3 style="text-align:center">🔐 ${title}</h3><p style="font-size:12px;color:#888;text-align:center;margin:-8px 0 10px">Enter manager PIN</p><div class="pin-display">${dots}</div>${err?`<div style="text-align:center;color:#C0392B;font-size:12px;margin-bottom:8px">${err}</div>`:''}<div class="pin-grid">${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="pin-key" onclick="pinKey('${n}')">${n}</button>`).join('')}<button class="pin-key del" onclick="pinDel()">⌫</button><button class="pin-key" onclick="pinKey('0')">0</button><button class="pin-key ok" onclick="pinSubmit()">✓</button></div><button class="btn-sec" onclick="pinCancel()">Cancel</button>`;
 }
 function pinKey(d){if(_pinValue.length>=6)return;_pinValue+=d;const dots=document.getElementById('overlay').querySelectorAll('.pin-dot');dots.forEach((dot,i)=>dot.classList.toggle('filled',i<_pinValue.length));if(_pinValue.length>=4)setTimeout(pinSubmit,120);}
 function pinDel(){_pinValue=_pinValue.slice(0,-1);const dots=document.querySelectorAll('.pin-dot');dots.forEach((dot,i)=>dot.classList.toggle('filled',i<_pinValue.length));}
@@ -231,25 +218,17 @@ function pinCancel(){_pinCallback=null;_pinActive=false;_pinValue='';closeModal(
 
 window.addEventListener('beforeunload',function(e){const active=seats.filter(s=>s.occupied).length;if(active>0){e.preventDefault();e.returnValue=`${active} seat(s) still active!`;return e.returnValue;}});
 
-// ═══ HEADER ═══
 function renderStats(){
   const occ=seats.filter(s=>s.occupied).length,blk=seats.filter(s=>s.blocked).length,rev=txnsForDate(todayStr()).reduce((s,t)=>s+t.totalAmount,0);
   document.getElementById('hdr-cafe-name').textContent='🎲 '+settings.cafeName;
-  document.getElementById('stats').innerHTML=`
-    <div class="hs"><div class="hs-v">${occ}/${TOTAL_SEATS}</div><div class="hs-l">Occupied</div></div>
-    <div class="hs"><div class="hs-v">${inr(rev)}</div><div class="hs-l">Today</div></div>
-    ${blk?`<div class="hs"><div class="hs-v" style="color:#185FA5">${blk}</div><div class="hs-l">Reserved</div></div>`:''}`;
+  document.getElementById('stats').innerHTML=`<div class="hs"><div class="hs-v">${occ}/${TOTAL_SEATS}</div><div class="hs-l">Occupied</div></div><div class="hs"><div class="hs-v">${inr(rev)}</div><div class="hs-l">Today</div></div>${blk?`<div class="hs"><div class="hs-v" style="color:#185FA5">${blk}</div><div class="hs-l">Reserved</div></div>`:''}`;
 }
 
-// ═══ EXPORT BANNER ═══
 function checkExportBanner(){
   const yd=yesterday(),ytx=txnsForDate(yd),banner=document.getElementById('export-banner');
   if(!banner)return;
-  if(ytx.length>0&&settings.lastExportDate!==yd){
-    const rev=ytx.reduce((s,t)=>s+t.totalAmount,0);
-    banner.style.display='flex';
-    banner.innerHTML=`<div class="exp-banner"><div class="exp-banner-txt">📊 Yesterday not backed up — ${ytx.length} sessions · ${inr(rev)}</div><div class="exp-banner-btns"><button class="exp-banner-btn pri" onclick="exportCSV('${yd}');markExported('${yd}')">Export CSV</button><button class="exp-banner-btn" onclick="exportPDF('${yd}');markExported('${yd}')">PDF</button><button class="exp-banner-btn dim" onclick="markExported('${yd}')">Dismiss</button></div></div>`;
-  }else{banner.style.display='none';}
+  if(ytx.length>0&&settings.lastExportDate!==yd){const rev=ytx.reduce((s,t)=>s+t.totalAmount,0);banner.style.display='flex';banner.innerHTML=`<div class="exp-banner"><div class="exp-banner-txt">📊 Yesterday not backed up — ${ytx.length} sessions · ${inr(rev)}</div><div class="exp-banner-btns"><button class="exp-banner-btn pri" onclick="exportCSV('${yd}');markExported('${yd}')">Export CSV</button><button class="exp-banner-btn" onclick="exportPDF('${yd}');markExported('${yd}')">PDF</button><button class="exp-banner-btn dim" onclick="markExported('${yd}')">Dismiss</button></div></div>`;}
+  else{banner.style.display='none';}
 }
 function markExported(date){settings.lastExportDate=date;saveAll();checkExportBanner();}
 
@@ -258,33 +237,22 @@ setInterval(()=>{const today=todayStr();if(today!==_lastDateStr){const prev=_las
 // ═══ RESET ═══
 function openReset(){requirePIN('Reset Data',showResetModal);}
 function showResetModal(){
-  showModal(`
-    <h3 style="color:#C0392B">🗑 Reset Transactions</h3>
-    <p style="font-size:12px;color:#888;margin:-8px 0 16px;line-height:1.6">
-      Enter how many <strong>days</strong> and <strong>hours</strong> of recent data to delete.<br>
-      Example: 1 day + 6 hours = deletes last 30 hours of transactions.
-    </p>
+  showModal(`<h3 style="color:#C0392B">🗑 Reset Transactions</h3>
+    <p style="font-size:12px;color:#888;margin:-8px 0 16px;line-height:1.6">Enter how many <strong>days</strong> and <strong>hours</strong> of recent data to delete.</p>
     <div class="reset-inputs">
       <div class="reset-field"><label>Days</label><input type="number" id="reset-days" min="0" max="365" value="0" oninput="updateResetPreview()"></div>
       <div style="display:flex;align-items:center;padding-top:22px;color:#bbb;font-size:24px">+</div>
       <div class="reset-field"><label>Hours</label><input type="number" id="reset-hours" min="0" max="23" value="0" oninput="updateResetPreview()"></div>
     </div>
-    <div class="reset-preview">
-      <div class="reset-preview-count" id="reset-count">0</div>
-      <div class="reset-preview-label" id="reset-label">Enter days or hours above</div>
-      <div class="reset-preview-range" id="reset-range"></div>
-    </div>
-    <div class="warn-box">⚠ This permanently deletes transactions from Firebase. Export first if needed.</div>
+    <div class="reset-preview"><div class="reset-preview-count" id="reset-count">0</div><div class="reset-preview-label" id="reset-label">Enter days or hours above</div><div class="reset-preview-range" id="reset-range"></div></div>
+    <div class="warn-box">⚠ Permanently deletes from Firebase. Export first if needed.</div>
     <button class="btn-sec" style="border-color:#185FA5;color:#185FA5;margin-top:0" onclick="exportAllCSV()">📊 Export Backup First</button>
     <button class="btn-pri red" id="reset-confirm-btn" onclick="confirmReset()" disabled style="opacity:.4;cursor:not-allowed">🗑 Delete These Transactions</button>
-    <button class="btn-sec" onclick="closeModal()">Cancel</button>
-  `);
+    <button class="btn-sec" onclick="closeModal()">Cancel</button>`);
 }
 function updateResetPreview(){
-  const days=parseInt(document.getElementById('reset-days')?.value)||0;
-  const hours=parseInt(document.getElementById('reset-hours')?.value)||0;
-  const totalMs=(days*24+hours)*60*60*1000;
-  const cutoff=Date.now()-totalMs;
+  const days=parseInt(document.getElementById('reset-days')?.value)||0,hours=parseInt(document.getElementById('reset-hours')?.value)||0;
+  const totalMs=(days*24+hours)*60*60*1000,cutoff=Date.now()-totalMs;
   const toDelete=txns.filter(t=>t.t1>=cutoff);
   const countEl=document.getElementById('reset-count'),labelEl=document.getElementById('reset-label'),rangeEl=document.getElementById('reset-range'),btnEl=document.getElementById('reset-confirm-btn');
   if(countEl)countEl.textContent=toDelete.length;
@@ -293,24 +261,12 @@ function updateResetPreview(){
   if(btnEl){const can=totalMs>0&&toDelete.length>0;btnEl.disabled=!can;btnEl.style.opacity=can?'1':'0.4';btnEl.style.cursor=can?'pointer':'not-allowed';}
 }
 function confirmReset(){
-  const days=parseInt(document.getElementById('reset-days')?.value)||0;
-  const hours=parseInt(document.getElementById('reset-hours')?.value)||0;
-  const totalMs=(days*24+hours)*60*60*1000;
-  const cutoff=Date.now()-totalMs;
+  const days=parseInt(document.getElementById('reset-days')?.value)||0,hours=parseInt(document.getElementById('reset-hours')?.value)||0;
+  const totalMs=(days*24+hours)*60*60*1000,cutoff=Date.now()-totalMs;
   const toDelete=txns.filter(t=>t.t1>=cutoff);
   if(toDelete.length===0){alert('No transactions in that range.');return;}
   const ts=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');
-  showModal(`
-    <h3 style="text-align:center;color:#C0392B">⚠ Final Confirmation</h3>
-    <div style="text-align:center;margin:16px 0">
-      <div style="font-family:monospace;font-size:48px;font-weight:700;color:#C0392B;line-height:1">${toDelete.length}</div>
-      <div style="font-size:13px;color:#555;margin-top:8px">transaction${toDelete.length!==1?'s':''} will be permanently deleted</div>
-      <div style="font-size:11px;color:#aaa;background:#f7f7f7;border-radius:6px;padding:6px 10px;display:inline-block;margin-top:8px">Last ${ts}</div>
-    </div>
-    <div class="warn-box" style="text-align:center">This <strong>cannot be undone.</strong></div>
-    <button class="btn-pri red" style="margin-top:0" onclick="doReset(${cutoff})">Yes — Delete ${toDelete.length} Transaction${toDelete.length!==1?'s':''}</button>
-    <button class="btn-sec" onclick="showResetModal()">← Go Back</button>
-  `);
+  showModal(`<h3 style="text-align:center;color:#C0392B">⚠ Final Confirmation</h3><div style="text-align:center;margin:16px 0"><div style="font-family:monospace;font-size:48px;font-weight:700;color:#C0392B;line-height:1">${toDelete.length}</div><div style="font-size:13px;color:#555;margin-top:8px">transaction${toDelete.length!==1?'s':''} will be permanently deleted</div><div style="font-size:11px;color:#aaa;background:#f7f7f7;border-radius:6px;padding:6px 10px;display:inline-block;margin-top:8px">Last ${ts}</div></div><div class="warn-box" style="text-align:center">This <strong>cannot be undone.</strong></div><button class="btn-pri red" style="margin-top:0" onclick="doReset(${cutoff})">Yes — Delete ${toDelete.length} Transaction${toDelete.length!==1?'s':''}</button><button class="btn-sec" onclick="showResetModal()">← Go Back</button>`);
 }
 function doReset(cutoff){
   const before=txns.length;txns=txns.filter(t=>t.t1<cutoff);const deleted=before-txns.length;
@@ -325,39 +281,19 @@ function renderFloor(){
   seats.forEach(seat=>{
     if(seat.blocked){
       const bi=seat.blockInfo||{};
-      html+=`<div class="seat blk" onclick="openBlockedOptions(${seat.id})">
-        <div class="sn">#${String(seat.id).padStart(2,'0')}</div>
-        <div class="s-lbl-blk">RSVD</div>
-        <div class="s-grp" style="color:#185FA5;font-size:9px">${(bi.name||'').substring(0,8)||'—'}</div>
-        ${bi.date?`<div class="s-grp" style="font-size:9px">${fmtDate(bi.date)}</div>`:''}
-        ${bi.time?`<div class="s-grp" style="font-size:9px">${bi.time}</div>`:''}
-      </div>`;
+      html+=`<div class="seat blk" onclick="openBlockedOptions(${seat.id})"><div class="sn">#${String(seat.id).padStart(2,'0')}</div><div class="s-lbl-blk">RSVD</div><div class="s-grp" style="color:#185FA5;font-size:9px">${(bi.name||'').substring(0,8)||'—'}</div>${bi.date?`<div class="s-grp" style="font-size:9px">${fmtDate(bi.date)}</div>`:''}${bi.time?`<div class="s-grp" style="font-size:9px">${bi.time}</div>`:''}</div>`;
     } else if(seat.occupied){
       const c=getGrpColor(seat.groupId);
-      html+=`<div class="seat occ" onclick="openCheckout('${seat.groupId}')">
-        <span class="grp-dot" style="background:${c}"></span>
-        <div class="sn">#${String(seat.id).padStart(2,'0')}</div>
-        <div class="s-tim" id="t${seat.id}">${fmtDur(seat.t0)}</div>
-        <div class="s-grp">${seat.name||'—'} · ${seat.groupSize}p</div>
-      </div>`;
+      html+=`<div class="seat occ" onclick="openCheckout('${seat.groupId}')"><span class="grp-dot" style="background:${c}"></span><div class="sn">#${String(seat.id).padStart(2,'0')}</div><div class="s-tim" id="t${seat.id}">${fmtDur(seat.t0)}</div><div class="s-grp">${seat.name||'—'} · ${seat.groupSize}p</div></div>`;
     } else {
-      html+=`<div class="seat free" onclick="openFreeOptions(${seat.id})">
-        <div class="sn">#${String(seat.id).padStart(2,'0')}</div>
-        <div class="s-lbl">free</div>
-      </div>`;
+      html+=`<div class="seat free" onclick="openFreeOptions(${seat.id})"><div class="sn">#${String(seat.id).padStart(2,'0')}</div><div class="s-lbl">free</div></div>`;
     }
   });
   html+='</div>';document.getElementById('content').innerHTML=html;
 }
 function tickUpdate(){if(currentView!=='floor')return;seats.forEach(s=>{if(s.occupied){const te=document.getElementById('t'+s.id);if(te)te.textContent=fmtDur(s.t0);}});renderStats();}
 
-function openFreeOptions(id){
-  showModal(`<h3>Seat #${String(id).padStart(2,'0')}</h3>
-    <p style="font-size:12px;color:#888;margin:-8px 0 14px">What would you like to do?</p>
-    <button class="btn-pri" style="margin-top:0" onclick="closeModal();openCheckin(${id})">✓ Check In Guest</button>
-    <button class="btn-pri blue" onclick="closeModal();openBlockSeat(${id})">🔒 Reserve for Appointment</button>
-    <button class="btn-sec" onclick="closeModal()">Cancel</button>`);
-}
+function openFreeOptions(id){showModal(`<h3>Seat #${String(id).padStart(2,'0')}</h3><p style="font-size:12px;color:#888;margin:-8px 0 14px">What would you like to do?</p><button class="btn-pri" style="margin-top:0" onclick="closeModal();openCheckin(${id})">✓ Check In Guest</button><button class="btn-pri blue" onclick="closeModal();openBlockSeat(${id})">🔒 Reserve for Appointment</button><button class="btn-sec" onclick="closeModal()">Cancel</button>`);}
 
 // ═══ CHECK-IN ═══
 function openCheckin(startId,prefillName=''){
@@ -385,7 +321,7 @@ function doCheckin(startId){
   saveAll();closeModal();if(currentView==='floor')renderFloor();
 }
 
-// ═══ BLOCK / RESERVE — NOW WITH DATE ═══
+// ═══ BLOCK / RESERVE ═══
 function openBlockSeat(startId){
   showModal(`<h3>Reserve Seat #${String(startId).padStart(2,'0')}</h3>
     <div class="fgrp"><label class="flabel">Customer name</label><input id="blk-name" placeholder="Enter name..." autocomplete="off"></div>
@@ -400,18 +336,13 @@ function openBlockSeat(startId){
 }
 function chgBlk(d){const el=document.getElementById('blk-n');el.textContent=Math.max(1,parseInt(el.textContent)+d);}
 function doBlockSeat(startId){
-  const name=document.getElementById('blk-name').value.trim();
-  const date=document.getElementById('blk-date').value;
-  const time=document.getElementById('blk-time').value;
-  const note=document.getElementById('blk-note').value.trim();
-  const n=parseInt(document.getElementById('blk-n').textContent);
+  const name=document.getElementById('blk-name').value.trim(),date=document.getElementById('blk-date').value,time=document.getElementById('blk-time').value,note=document.getElementById('blk-note').value.trim(),n=parseInt(document.getElementById('blk-n').textContent);
   const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{const ai=a.id>=startId?a.id-startId:a.id+TOTAL_SEATS;const bi=b.id>=startId?b.id-startId:b.id+TOTAL_SEATS;return ai-bi;});
   if(free.length<n){alert(`Only ${free.length} free seats!`);return;}
   const toBlk=free.slice(0,n).map(s=>s.id);
   seats=seats.map(s=>toBlk.includes(s.id)?{...s,blocked:true,blockInfo:{name,date,time,note}}:s);
   saveAll();closeModal();if(currentView==='floor')renderFloor();
 }
-
 function openBlockedOptions(id){
   const seat=seats.find(s=>s.id===id),bi=seat.blockInfo||{};
   showModal(`<h3>Reserved — Seat #${String(id).padStart(2,'0')}</h3>
@@ -426,14 +357,9 @@ function openBlockedOptions(id){
     <button class="btn-sec" style="border-color:#C0392B;color:#C0392B" onclick="requirePIN('Remove Reservation',()=>unblockSeat(${id}))">✕ Remove</button>
     <button class="btn-sec" onclick="closeModal()">Close</button>`);
 }
-function convertToCheckin(id){
-  const seat=seats.find(s=>s.id===id),name=(seat.blockInfo||{}).name||'';
-  seats=seats.map(s=>s.id===id?{...s,blocked:false,blockInfo:null}:s);
-  saveAll();closeModal();openCheckin(id,name);
-}
+function convertToCheckin(id){const seat=seats.find(s=>s.id===id),name=(seat.blockInfo||{}).name||'';seats=seats.map(s=>s.id===id?{...s,blocked:false,blockInfo:null}:s);saveAll();closeModal();openCheckin(id,name);}
 function editBlockedSeat(id){
-  const bi=(seats.find(s=>s.id===id)||{}).blockInfo||{};
-  closeModal();
+  const bi=(seats.find(s=>s.id===id)||{}).blockInfo||{};closeModal();
   showModal(`<h3>Edit Reservation — #${String(id).padStart(2,'0')}</h3>
     <div class="fgrp"><label class="flabel">Customer name</label><input id="eblk-name" value="${bi.name||''}"></div>
     <div class="fgrp"><label class="flabel">Appointment date</label><input id="eblk-date" type="date" value="${bi.date||todayISO()}"></div>
@@ -443,10 +369,7 @@ function editBlockedSeat(id){
     <button class="btn-sec" onclick="openBlockedOptions(${id})">← Back</button>`);
 }
 function doEditBlock(id){
-  const name=document.getElementById('eblk-name').value.trim();
-  const date=document.getElementById('eblk-date').value;
-  const time=document.getElementById('eblk-time').value;
-  const note=document.getElementById('eblk-note').value.trim();
+  const name=document.getElementById('eblk-name').value.trim(),date=document.getElementById('eblk-date').value,time=document.getElementById('eblk-time').value,note=document.getElementById('eblk-note').value.trim();
   seats=seats.map(s=>s.id===id?{...s,blockInfo:{name,date,time,note}}:s);
   saveAll();closeModal();if(currentView==='floor')renderFloor();
 }
@@ -509,11 +432,18 @@ function doEditSession(gid){const name=document.getElementById('es-name').value.
 function confirmCancelSession(gid){const grp=seats.filter(s=>s.groupId===gid),s0=grp[0];showModal(`<h3>Cancel Session?</h3><div class="warn-box">⚠ Frees all ${s0.groupSize} seat(s) with NO charge.</div><button class="btn-pri red" style="margin-top:0" onclick="doCancelSession('${gid}')">Yes, Cancel — No Charge</button><button class="btn-sec" onclick="openCheckout('${gid}')">No — Back to Checkout</button>`);}
 function doCancelSession(gid){seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0}:s);delete groupColorMap[gid];cartItems={};coInfo=null;saveAll();closeModal();if(currentView==='floor')renderFloor();}
 
-// ═══ RECEIPT ═══
+// ═══════════════════════════════════════════════
+// ═══ RECEIPT — with ← Add Items back button ═══
+// ═══════════════════════════════════════════════
 function showReceipt(tx){
   const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
   const aoHTML=tx.addons&&tx.addons.length?tx.addons.map(a=>`<div class="brow"><span class="lbl">${a.name} ×${a.qty}</span><span class="val">${inr(a.price*a.qty)}</span></div>`).join(''):'';
-  showModal(`<div style="text-align:center;margin-bottom:14px"><div style="font-size:16px;font-weight:700">${settings.cafeName}</div>${settings.address?`<div style="font-size:11px;color:#999">${settings.address}</div>`:''}<div style="font-size:11px;color:#999;margin-top:2px">${new Date(tx.t1).toLocaleString('en-IN')}</div></div>
+  showModal(`
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:16px;font-weight:700">${settings.cafeName}</div>
+      ${settings.address?`<div style="font-size:11px;color:#999">${settings.address}</div>`:''}
+      <div style="font-size:11px;color:#999;margin-top:2px">${new Date(tx.t1).toLocaleString('en-IN')}</div>
+    </div>
     <div class="bill-box" style="font-size:12px">
       <div class="brow"><span class="lbl">Customer</span><span class="val" style="font-family:inherit">${tx.name}</span></div>
       <div class="brow"><span class="lbl">Seats (${tx.persons})</span><span class="val" style="font-family:inherit;font-size:10px">${sl}</span></div>
@@ -523,14 +453,102 @@ function showReceipt(tx){
       <div style="border-top:1px dashed #ccc;margin:7px 0"></div>
       <div class="brow"><span class="lbl">Payment</span><span class="tag ${tx.method}">${tx.method.toUpperCase()}</span></div>
       <div style="border-top:1px solid #ddd;margin:7px 0"></div>
-      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:2px 0"><span style="color:#888">TOTAL</span><span style="color:#BA7517">${inr(tx.totalAmount)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:2px 0">
+        <span style="color:#888">TOTAL</span><span style="color:#BA7517">${inr(tx.totalAmount)}</span>
+      </div>
     </div>
+
     <div class="btn-row">
       <button class="btn-sec" style="flex:1;margin-top:0" onclick="printR(${tx.id})">🖨️ Print</button>
       ${tx.phone?`<button class="btn-pri whatsapp" style="flex:1;margin-top:0" onclick="sendWhatsApp(${tx.id})">💬 WhatsApp</button>`:''}
       <button class="btn-pri" style="flex:2;margin-top:0" onclick="closeModal()">Done</button>
-    </div>`);
+    </div>
+
+    <button class="btn-sec" style="margin-top:8px;border-color:#BA7517;color:#BA7517;border-width:1.5px" onclick="editReceiptAddons(${tx.id})">
+      ← Forgot something? Add more items
+    </button>
+  `);
 }
+
+// ═══ ADD MORE ITEMS TO COMPLETED BILL ═══
+function editReceiptAddons(txId){
+  const tx=txns.find(t=>t.id===txId);if(!tx)return;
+
+  // Pre-fill cart from existing addons
+  const editCart={};
+  if(tx.addons)tx.addons.forEach(a=>{const it=menuItems.find(m=>m.name===a.name);if(it)editCart[it.id]=a.qty;});
+
+  const cats=[...new Set(menuItems.map(m=>m.category))];
+  const menuHTML=cats.map(cat=>{
+    const items=menuItems.filter(m=>m.category===cat);
+    return `<div style="margin-bottom:8px">
+      <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${cat}</div>
+      ${items.map(it=>`<div class="add-row">
+        <div><span style="font-size:12px">${it.name}</span><span style="font-size:11px;color:#aaa;margin-left:4px">${inr(it.price)}</span></div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <button class="cbtn" style="width:24px;height:24px;font-size:13px" onclick="chgEditCart('${it.id}',-1,${txId})">−</button>
+          <span style="font-family:monospace;font-size:12px;min-width:14px;text-align:center" id="ecart-${it.id}">${editCart[it.id]||0}</span>
+          <button class="cbtn" style="width:24px;height:24px;font-size:13px" onclick="chgEditCart('${it.id}',1,${txId})">+</button>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+
+  // Store editCart globally for this session
+  window._editCart=editCart;
+  window._editTxId=txId;
+
+  const currentFoodTotal=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
+
+  showModal(`
+    <h3>← Add More Items</h3>
+    <div style="background:#FFF8EC;border:1px solid #FACF80;border-radius:7px;padding:7px 10px;font-size:11px;color:#7A4F00;margin-bottom:10px">
+      Adding items to <strong>${tx.name}</strong>'s bill. Current food total: <strong>${inr(currentFoodTotal)}</strong>
+    </div>
+    <div style="max-height:240px;overflow-y:auto;border:1px solid #eee;border-radius:8px;padding:8px 10px;background:#fafafa;margin-bottom:12px">
+      ${menuHTML}
+    </div>
+    <div style="background:#f7f7f7;border-radius:7px;padding:8px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:#888">New food total</span>
+      <span style="font-family:monospace;font-size:16px;font-weight:700;color:#BA7517" id="edit-food-total">${inr(currentFoodTotal)}</span>
+    </div>
+    <div style="background:#f7f7f7;border-radius:7px;padding:8px 12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;font-weight:700;color:#888">New Bill Total</span>
+      <span style="font-family:monospace;font-size:20px;font-weight:700;color:#BA7517" id="edit-bill-total">${inr(tx.seatCharge+currentFoodTotal)}</span>
+    </div>
+    <button class="btn-pri" onclick="saveEditedAddons(${txId})">✓ Update Bill</button>
+    <button class="btn-sec" onclick="showReceipt(txns.find(t=>t.id===${txId}))">← Back to Receipt</button>
+  `);
+}
+
+function chgEditCart(itemId,d,txId){
+  if(!window._editCart)window._editCart={};
+  window._editCart[itemId]=Math.max(0,(window._editCart[itemId]||0)+d);
+  if(!window._editCart[itemId])delete window._editCart[itemId];
+  const el=document.getElementById('ecart-'+itemId);
+  if(el)el.textContent=window._editCart[itemId]||0;
+
+  // Recalculate totals
+  const tx=txns.find(t=>t.id===txId);if(!tx)return;
+  const newFoodTotal=Object.entries(window._editCart).reduce((s,[id,qty])=>{const it=menuItems.find(m=>m.id===id);return it?s+it.price*qty:s;},0);
+  const ftEl=document.getElementById('edit-food-total'),btEl=document.getElementById('edit-bill-total');
+  if(ftEl)ftEl.textContent=inr(newFoodTotal);
+  if(btEl)btEl.textContent=inr(tx.seatCharge+newFoodTotal);
+}
+
+function saveEditedAddons(txId){
+  const tx=txns.find(t=>t.id===txId);if(!tx)return;
+  const newAddons=Object.entries(window._editCart||{}).map(([id,qty])=>{const it=menuItems.find(m=>m.id===id);return it?{name:it.name,price:it.price,qty}:null;}).filter(Boolean);
+  const newFoodTotal=newAddons.reduce((s,a)=>s+a.price*a.qty,0);
+  tx.addons=newAddons;
+  tx.totalAmount=tx.seatCharge+newFoodTotal;
+  window._editCart={};window._editTxId=null;
+  saveAll();
+  if(currentView==='report')renderReport();
+  showReceipt(tx);
+}
+// ═══════════════════════════════════════════════
+
 function sendWhatsApp(txId){const tx=txns.find(t=>t.id===txId);if(!tx||!tx.phone){alert('No phone number.');return;}const ao=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;const msg=`Hi ${tx.name} 👋\n\nThank you for visiting ${settings.cafeName} 🎲\n\n🧾 Your Bill:\nSeats: ${tx.persons}\nDuration: ${fmtMins(tx.t1-tx.t0)}\nSeat charge: ${inr(tx.seatCharge)}${ao?`\nFood & drinks: ${inr(ao)}`:''}\n\n✅ Total Paid: ${inr(tx.totalAmount)} (${tx.method.toUpperCase()})\n\nVisit us again soon! 😊`;window.open(`https://wa.me/91${tx.phone}?text=${encodeURIComponent(msg)}`);}
 function printR(txId){
   const tx=txns.find(t=>t.id===txId);if(!tx)return;
@@ -561,12 +579,7 @@ function renderReport(){
   const dates=allDates(),tx=txnsForDate(reportDate);
   const rev=tx.reduce((s,t)=>s+t.totalAmount,0),seatRev=tx.reduce((s,t)=>s+t.seatCharge,0),aoRev=tx.reduce((s,t)=>s+(t.addons?t.addons.reduce((a,i)=>a+i.price*i.qty,0):0),0);
   let html=`<div class="rpt"><div class="sec-lbl">Select date</div><div class="date-pills">${dates.slice(0,8).map(d=>`<button class="dpill${d===reportDate?' active':''}" onclick="reportDate='${d}';renderReport()">${d===todayStr()?'Today':new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</button>`).join('')}</div>
-    <div class="rpt-stats">
-      <div class="rstat"><div class="rstat-v">${inr(rev)}</div><div class="rstat-l">Total Revenue</div></div>
-      <div class="rstat"><div class="rstat-v">${tx.length}</div><div class="rstat-l">Sessions</div></div>
-      <div class="rstat"><div class="rstat-v">${inr(seatRev)}</div><div class="rstat-l">Seat Revenue</div></div>
-      <div class="rstat"><div class="rstat-v">${inr(aoRev)}</div><div class="rstat-l">Food Revenue</div></div>
-    </div>
+    <div class="rpt-stats"><div class="rstat"><div class="rstat-v">${inr(rev)}</div><div class="rstat-l">Total Revenue</div></div><div class="rstat"><div class="rstat-v">${tx.length}</div><div class="rstat-l">Sessions</div></div><div class="rstat"><div class="rstat-v">${inr(seatRev)}</div><div class="rstat-l">Seat Revenue</div></div><div class="rstat"><div class="rstat-v">${inr(aoRev)}</div><div class="rstat-l">Food Revenue</div></div></div>
     <div class="exp-btns"><button class="exp-btn" onclick="exportCSV('${reportDate}')">📊 Export CSV</button><button class="exp-btn" onclick="exportPDF('${reportDate}')">📄 Export PDF</button></div>`;
   if(tx.length>0){
     html+=`<div class="sec-lbl">Payment breakdown</div><div class="pay-bkdn">`;
@@ -600,14 +613,13 @@ function renderSettings(){
       <button class="btn-sec" style="margin-top:0;border-color:#185FA5;color:#185FA5" onclick="exportAllCSV()">📊 Export All Transactions</button>
       <button class="btn-sec" style="margin-top:8px;border-color:#C0392B;color:#C0392B" onclick="requirePIN('Clear All Data',confirmClearData)">⚠ Clear All Data</button>
     </div>
-    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.2</strong><br>Firebase · Auto ID · WhatsApp · Reset · Date on Reservations<br>Total transactions: <strong>${txns.length}</strong></div>
+    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.3</strong><br>Firebase · Auto ID · WhatsApp · Reset · Date Reservations · Edit Bill<br>Total transactions: <strong>${txns.length}</strong></div>
   </div>`;
 }
 function saveSettings(){settings.cafeName=document.getElementById('s-name').value.trim()||'The Playhouse';settings.address=document.getElementById('s-addr').value.trim();settings.ratePerHour=parseFloat(document.getElementById('s-rate').value)||99;settings.pin=document.getElementById('s-pin').value;settings.largeBillThreshold=parseFloat(document.getElementById('s-threshold').value)||500;saveAll();renderStats();const btn=event.target;btn.textContent='✓ Saved!';btn.style.background='#27AE60';setTimeout(()=>{btn.textContent='Save All Settings';btn.style.background='';},1800);}
 function confirmClearData(){showModal(`<h3>⚠ Clear All Data?</h3><div class="warn-box">Permanently deletes ALL ${txns.length} transactions. Cannot be undone.</div><button class="btn-sec" style="border-color:#185FA5;color:#185FA5;margin-top:0" onclick="exportAllCSV()">📊 Export First</button><button class="btn-pri red" onclick="doClearData()">Delete Everything</button><button class="btn-sec" onclick="closeModal()">Cancel</button>`);}
 function doClearData(){seats=mkSeats();txns=[];groupColorMap={};gcIdx=0;coInfo=null;cartItems={};customerCounter=1;saveAll();renderStats();closeModal();if(currentView==='settings')renderSettings();else renderFloor();}
 
-// ═══ NAV & MODAL ═══
 function setView(v){if(v==='settings'){requirePIN('Access Settings',()=>doSetView('settings'));return;}doSetView(v);}
 function doSetView(v){currentView=v;['floor','menu','report','settings'].forEach(x=>document.getElementById('btn-'+x).classList.toggle('active',x===v));if(v==='floor')renderFloor();else if(v==='menu')renderMenu();else if(v==='report')renderReport();else if(v==='settings')renderSettings();}
 function showModal(html){const ov=document.getElementById('overlay');ov.innerHTML=`<div class="mbox">${html}</div>`;ov.style.display='flex';}
