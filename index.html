@@ -12,9 +12,11 @@ body{font-family:system-ui,sans-serif;background:#f4f4f4;color:#111;min-height:1
 .hdr-title{font-size:15px;font-weight:700;color:#333;white-space:nowrap}
 .hdr-stats{display:flex;gap:16px;flex:1;justify-content:center;flex-wrap:wrap}
 .hs{text-align:center}.hs-v{font-family:monospace;font-size:14px;font-weight:700;color:#111}.hs-l{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em}
-.nav{display:flex;gap:3px}
+.nav{display:flex;gap:3px;align-items:center}
 .nbtn{padding:5px 11px;border-radius:7px;border:1px solid #ccc;background:transparent;cursor:pointer;font-size:12px;color:#666;font-family:inherit;white-space:nowrap}
 .nbtn.active{background:#BA7517;color:#fff;border-color:#BA7517}
+.reset-btn{padding:5px 11px;border-radius:7px;border:1px solid #C0392B;background:transparent;cursor:pointer;font-size:12px;color:#C0392B;font-family:inherit;white-space:nowrap;font-weight:600;transition:all .15s}
+.reset-btn:hover{background:#C0392B;color:#fff}
 .content{flex:1;overflow-y:auto}
 .exp-banner{background:#FFF8EC;border-bottom:2px solid #FACF80;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .exp-banner-txt{font-size:12px;color:#7A4F00;font-weight:500}
@@ -111,6 +113,15 @@ body{font-family:system-ui,sans-serif;background:#f4f4f4;color:#111;min-height:1
 .big-bill-amt{font-family:monospace;font-size:44px;font-weight:700;color:#BA7517;line-height:1}
 .big-bill-lbl{font-size:12px;color:#888;margin-top:6px}
 .settings-wrap{padding:14px;max-width:500px}
+.reset-inputs{display:flex;gap:10px;margin-bottom:14px}
+.reset-field{flex:1;text-align:center}
+.reset-field label{display:block;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.reset-field input{width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;background:#f9f9f9;color:#111;font-family:monospace;font-size:22px;font-weight:700;text-align:center;outline:none}
+.reset-field input:focus{border-color:#C0392B;background:#fff}
+.reset-preview{background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:10px 14px;margin-bottom:12px;text-align:center}
+.reset-preview-count{font-family:monospace;font-size:32px;font-weight:700;color:#C0392B}
+.reset-preview-label{font-size:11px;color:#888;margin-top:3px}
+.reset-preview-range{font-size:10px;color:#aaa;margin-top:4px}
 </style>
 </head>
 <body>
@@ -123,6 +134,7 @@ body{font-family:system-ui,sans-serif;background:#f4f4f4;color:#111;min-height:1
       <button class="nbtn" onclick="setView('menu')" id="btn-menu">Menu</button>
       <button class="nbtn" onclick="setView('report')" id="btn-report">Report</button>
       <button class="nbtn" onclick="setView('settings')" id="btn-settings">⚙</button>
+      <button class="reset-btn" onclick="openReset()">🗑 Reset</button>
     </div>
   </div>
   <div id="export-banner" style="display:none"></div>
@@ -134,7 +146,6 @@ body{font-family:system-ui,sans-serif;background:#f4f4f4;color:#111;min-height:1
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <script>
-// ═══ FIREBASE ═══
 const firebaseConfig = {
   apiKey: "AIzaSyBaocyc92pXMmmNx_foVZvZSYX3L8NYuTU",
   authDomain: "the-playhouse-cafe.firebaseapp.com",
@@ -147,7 +158,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 window.db = db;
 
-// ═══ CONSTANTS ═══
 const TOTAL_SEATS = 48;
 const GRP_COLORS = ['#E67E22','#2980B9','#27AE60','#8E44AD','#C0392B','#16A085','#D35400','#1ABC9C','#F39C12','#7F8C8D'];
 const MENU_CATS = ['Hot Drinks','Cold Drinks','Food','Snacks','Desserts','Other'];
@@ -166,51 +176,23 @@ const DEFAULT_MENU = [
   {id:'m12',name:'Banana Cake',price:40,category:'Desserts'},
 ];
 
-// ═══ STATE ═══
-let settings = {cafeName:'The Playhouse', address:'', ratePerHour:99, pin:'1234', lastExportDate:'', largeBillThreshold:500};
-let seats = mkSeats();
-let txns = [];
-let menuItems = JSON.parse(JSON.stringify(DEFAULT_MENU));
-let groupColorMap = {}, gcIdx = 0;
-let currentView = 'floor';
-let selectedMethod = 'cash';
-let cartItems = {};
-let coInfo = null;
-let reportDate = todayStr();
-let _pinCallback = null;
-let _pinValue = '';
-let _pinActive = false;
-let _lastDateStr = todayStr();
-let customerCounter = 1; // ← NEW: auto ID counter
+let settings={cafeName:'The Playhouse',address:'',ratePerHour:99,pin:'1234',lastExportDate:'',largeBillThreshold:500};
+let seats=mkSeats(),txns=[],menuItems=JSON.parse(JSON.stringify(DEFAULT_MENU));
+let groupColorMap={},gcIdx=0,currentView='floor',selectedMethod='cash';
+let cartItems={},coInfo=null,reportDate=todayStr();
+let _pinCallback=null,_pinValue='',_pinActive=false,_lastDateStr=todayStr();
+let customerCounter=1;
 
-function mkSeats(){
-  return Array.from({length:TOTAL_SEATS},(_,i)=>({id:i+1,occupied:false,name:'',t0:null,groupId:null,groupSize:0,blocked:false,blockInfo:null}));
-}
+function mkSeats(){return Array.from({length:TOTAL_SEATS},(_,i)=>({id:i+1,occupied:false,name:'',t0:null,groupId:null,groupSize:0,blocked:false,blockInfo:null}));}
 
-// ═══ FIREBASE SAVE/LOAD ═══
-async function saveAll(){
-  await db.collection("playhouse").doc("data").set({
-    settings, seats, txns, menuItems, customerCounter
-  });
-}
+async function saveAll(){await db.collection("playhouse").doc("data").set({settings,seats,txns,menuItems,customerCounter});}
 async function loadAll(){
-  const doc = await db.collection("playhouse").doc("data").get();
-  if(doc.exists){
-    const data = doc.data();
-    settings = data.settings || settings;
-    seats = data.seats || seats;
-    txns = data.txns || txns;
-    menuItems = data.menuItems || menuItems;
-    customerCounter = data.customerCounter || 1;
-  }
+  const doc=await db.collection("playhouse").doc("data").get();
+  if(doc.exists){const d=doc.data();settings=d.settings||settings;seats=d.seats||seats;txns=d.txns||txns;menuItems=d.menuItems||menuItems;customerCounter=d.customerCounter||1;}
 }
 
-// ═══ HELPERS ═══
 function getGrpColor(gid){if(!groupColorMap[gid]){groupColorMap[gid]=GRP_COLORS[gcIdx%GRP_COLORS.length];gcIdx++;}return groupColorMap[gid];}
-function calcSeatCharge(t0,persons){
-  const mins=(Date.now()-t0)/60000, r=settings.ratePerHour;
-  return mins<=60?r*persons:Math.ceil((r+(r/60)*(mins-60))*persons);
-}
+function calcSeatCharge(t0,persons){const mins=(Date.now()-t0)/60000,r=settings.ratePerHour;return mins<=60?r*persons:Math.ceil((r+(r/60)*(mins-60))*persons);}
 function calcCartTotal(){return Object.entries(cartItems).reduce((s,[id,qty])=>{const it=menuItems.find(m=>m.id===id);return it?s+it.price*qty:s;},0);}
 function getCartAddons(){return Object.entries(cartItems).map(([id,qty])=>{const it=menuItems.find(m=>m.id===id);return it?{name:it.name,price:it.price,qty}:null;}).filter(Boolean);}
 function fmtDur(t0){const s=Math.floor((Date.now()-t0)/1000);return[Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(n=>String(n).padStart(2,'0')).join(':');}
@@ -221,16 +203,13 @@ function yesterday(){const d=new Date();d.setDate(d.getDate()-1);return d.toDate
 function allDates(){const dates=[...new Set(txns.map(t=>t.date))].sort((a,b)=>new Date(b)-new Date(a));if(!dates.includes(todayStr()))dates.unshift(todayStr());return dates;}
 function txnsForDate(d){return txns.filter(t=>t.date===d);}
 
-// ═══ PIN ═══
 function requirePIN(title,callback){
   if(!settings.pin){callback();return;}
-  _pinCallback=callback;_pinValue='';_pinActive=true;
-  showModal(pinModalHTML(title,''));
+  _pinCallback=callback;_pinValue='';_pinActive=true;showModal(pinModalHTML(title,''));
 }
 function pinModalHTML(title,err){
   const dots=Array.from({length:4},(_,i)=>`<div class="pin-dot${i<_pinValue.length?' filled':''}"></div>`).join('');
-  return `
-    <h3 style="text-align:center">🔐 ${title}</h3>
+  return `<h3 style="text-align:center">🔐 ${title}</h3>
     <p style="font-size:12px;color:#888;text-align:center;margin:-8px 0 10px">Enter manager PIN</p>
     <div class="pin-display">${dots}</div>
     ${err?`<div style="text-align:center;color:#C0392B;font-size:12px;margin-bottom:8px">${err}</div>`:''}
@@ -240,245 +219,201 @@ function pinModalHTML(title,err){
       <button class="pin-key" onclick="pinKey('0')">0</button>
       <button class="pin-key ok" onclick="pinSubmit()">✓</button>
     </div>
-    <button class="btn-sec" onclick="pinCancel()">Cancel</button>
-  `;
+    <button class="btn-sec" onclick="pinCancel()">Cancel</button>`;
 }
-function pinKey(d){
-  if(_pinValue.length>=6)return;
-  _pinValue+=d;
-  const dots=document.getElementById('overlay').querySelectorAll('.pin-dot');
-  dots.forEach((dot,i)=>dot.classList.toggle('filled',i<_pinValue.length));
-  if(_pinValue.length>=4)setTimeout(pinSubmit,120);
-}
-function pinDel(){
-  _pinValue=_pinValue.slice(0,-1);
-  const dots=document.querySelectorAll('.pin-dot');
-  dots.forEach((dot,i)=>dot.classList.toggle('filled',i<_pinValue.length));
-}
-function pinSubmit(){
-  if(_pinValue===settings.pin){
-    const cb=_pinCallback;_pinCallback=null;_pinActive=false;_pinValue='';
-    closeModal();cb();
-  } else {
-    _pinValue='';
-    const ov=document.getElementById('overlay');
-    if(ov)ov.querySelector('.mbox').innerHTML=pinModalHTML('Access Denied','Incorrect PIN — try again');
-  }
-}
+function pinKey(d){if(_pinValue.length>=6)return;_pinValue+=d;const dots=document.getElementById('overlay').querySelectorAll('.pin-dot');dots.forEach((dot,i)=>dot.classList.toggle('filled',i<_pinValue.length));if(_pinValue.length>=4)setTimeout(pinSubmit,120);}
+function pinDel(){_pinValue=_pinValue.slice(0,-1);const dots=document.querySelectorAll('.pin-dot');dots.forEach((dot,i)=>dot.classList.toggle('filled',i<_pinValue.length));}
+function pinSubmit(){if(_pinValue===settings.pin){const cb=_pinCallback;_pinCallback=null;_pinActive=false;_pinValue='';closeModal();cb();}else{_pinValue='';const ov=document.getElementById('overlay');if(ov)ov.querySelector('.mbox').innerHTML=pinModalHTML('Access Denied','Incorrect PIN — try again');}}
 function pinCancel(){_pinCallback=null;_pinActive=false;_pinValue='';closeModal();}
 
-// ═══ CLOSE WARNING ═══
-window.addEventListener('beforeunload',function(e){
-  const active=seats.filter(s=>s.occupied).length;
-  if(active>0){e.preventDefault();e.returnValue=`${active} seat(s) still active!`;return e.returnValue;}
-});
+window.addEventListener('beforeunload',function(e){const active=seats.filter(s=>s.occupied).length;if(active>0){e.preventDefault();e.returnValue=`${active} seat(s) still active!`;return e.returnValue;}});
 
-// ═══ HEADER ═══
 function renderStats(){
-  const occ=seats.filter(s=>s.occupied).length;
-  const blk=seats.filter(s=>s.blocked).length;
-  const rev=txnsForDate(todayStr()).reduce((s,t)=>s+t.totalAmount,0);
+  const occ=seats.filter(s=>s.occupied).length,blk=seats.filter(s=>s.blocked).length,rev=txnsForDate(todayStr()).reduce((s,t)=>s+t.totalAmount,0);
   document.getElementById('hdr-cafe-name').textContent='🎲 '+settings.cafeName;
   document.getElementById('stats').innerHTML=`
     <div class="hs"><div class="hs-v">${occ}/${TOTAL_SEATS}</div><div class="hs-l">Occupied</div></div>
     <div class="hs"><div class="hs-v">${inr(rev)}</div><div class="hs-l">Today</div></div>
-    ${blk?`<div class="hs"><div class="hs-v" style="color:#185FA5">${blk}</div><div class="hs-l">Reserved</div></div>`:''}
-  `;
+    ${blk?`<div class="hs"><div class="hs-v" style="color:#185FA5">${blk}</div><div class="hs-l">Reserved</div></div>`:''}`;
 }
 
-// ═══ EXPORT BANNER ═══
 function checkExportBanner(){
-  const yd=yesterday();
-  const ytx=txnsForDate(yd);
-  const banner=document.getElementById('export-banner');
+  const yd=yesterday(),ytx=txnsForDate(yd),banner=document.getElementById('export-banner');
   if(!banner)return;
   if(ytx.length>0&&settings.lastExportDate!==yd){
     const rev=ytx.reduce((s,t)=>s+t.totalAmount,0);
     banner.style.display='flex';
-    banner.innerHTML=`<div class="exp-banner">
-      <div class="exp-banner-txt">📊 Yesterday not backed up — ${ytx.length} sessions · ${inr(rev)}</div>
-      <div class="exp-banner-btns">
-        <button class="exp-banner-btn pri" onclick="exportCSV('${yd}');markExported('${yd}')">Export CSV</button>
-        <button class="exp-banner-btn" onclick="exportPDF('${yd}');markExported('${yd}')">PDF</button>
-        <button class="exp-banner-btn dim" onclick="markExported('${yd}')">Dismiss</button>
-      </div>
-    </div>`;
-  } else {
-    banner.style.display='none';
-  }
+    banner.innerHTML=`<div class="exp-banner"><div class="exp-banner-txt">📊 Yesterday not backed up — ${ytx.length} sessions · ${inr(rev)}</div><div class="exp-banner-btns"><button class="exp-banner-btn pri" onclick="exportCSV('${yd}');markExported('${yd}')">Export CSV</button><button class="exp-banner-btn" onclick="exportPDF('${yd}');markExported('${yd}')">PDF</button><button class="exp-banner-btn dim" onclick="markExported('${yd}')">Dismiss</button></div></div>`;
+  }else{banner.style.display='none';}
 }
 function markExported(date){settings.lastExportDate=date;saveAll();checkExportBanner();}
 
-// ═══ MIDNIGHT CHECK ═══
-setInterval(()=>{
-  const today=todayStr();
-  if(today!==_lastDateStr){
-    const prev=_lastDateStr;_lastDateStr=today;
-    const ptx=txnsForDate(prev);
-    if(ptx.length>0&&settings.lastExportDate!==prev){
-      const rev=ptx.reduce((s,t)=>s+t.totalAmount,0);
-      showModal(`
-        <div style="text-align:center;margin-bottom:14px">
-          <div style="font-size:32px;margin-bottom:8px">🌙</div>
-          <h3>New day — export yesterday?</h3>
-        </div>
-        <div class="hint-box">${ptx.length} sessions · ${inr(rev)} revenue</div>
-        <button class="btn-pri" onclick="exportCSV('${prev}');markExported('${prev}');closeModal()">📊 Export CSV</button>
-        <button class="btn-pri grn" onclick="exportPDF('${prev}');markExported('${prev}');closeModal()">📄 Export PDF</button>
-        <button class="btn-sec" onclick="markExported('${prev}');closeModal()">Skip</button>
-      `);
-    }
-  }
-},60000);
+setInterval(()=>{const today=todayStr();if(today!==_lastDateStr){const prev=_lastDateStr;_lastDateStr=today;const ptx=txnsForDate(prev);if(ptx.length>0&&settings.lastExportDate!==prev){const rev=ptx.reduce((s,t)=>s+t.totalAmount,0);showModal(`<div style="text-align:center;margin-bottom:14px"><div style="font-size:32px;margin-bottom:8px">🌙</div><h3>New day — export yesterday?</h3></div><div class="hint-box">${ptx.length} sessions · ${inr(rev)} revenue</div><button class="btn-pri" onclick="exportCSV('${prev}');markExported('${prev}');closeModal()">📊 Export CSV</button><button class="btn-pri grn" onclick="exportPDF('${prev}');markExported('${prev}');closeModal()">📄 Export PDF</button><button class="btn-sec" onclick="markExported('${prev}');closeModal()">Skip</button>`);}}},60000);
 
-// ═══ FLOOR ═══
-function renderFloor(){
-  let html=`<div class="legend">
-    <span class="leg"><span class="ldot" style="background:#EAF3DE;border-color:#3B6D11"></span>Free</span>
-    <span class="leg"><span class="ldot" style="background:#FAEEDA;border-color:#BA7517"></span>Occupied</span>
-    <span class="leg"><span class="ldot" style="background:#E6F1FB;border-color:#185FA5"></span>Reserved</span>
-  </div><div class="seat-grid">`;
-  seats.forEach(seat=>{
-    if(seat.blocked){
-      const bi=seat.blockInfo||{};
-      html+=`<div class="seat blk" onclick="openBlockedOptions(${seat.id})">
-        <div class="sn">#${String(seat.id).padStart(2,'0')}</div>
-        <div class="s-lbl-blk">RSVD</div>
-        <div class="s-grp" style="color:#185FA5;font-size:9px">${(bi.name||'').substring(0,8)||'—'}</div>
-        ${bi.time?`<div class="s-grp" style="font-size:9px">${bi.time}</div>`:''}
-      </div>`;
-    } else if(seat.occupied){
-      const c=getGrpColor(seat.groupId);
-      html+=`<div class="seat occ" onclick="openCheckout('${seat.groupId}')">
-        <span class="grp-dot" style="background:${c}"></span>
-        <div class="sn">#${String(seat.id).padStart(2,'0')}</div>
-        <div class="s-tim" id="t${seat.id}">${fmtDur(seat.t0)}</div>
-        <div class="s-grp">${seat.name||'—'} · ${seat.groupSize}p</div>
-      </div>`;
-    } else {
-      html+=`<div class="seat free" onclick="openFreeOptions(${seat.id})">
-        <div class="sn">#${String(seat.id).padStart(2,'0')}</div>
-        <div class="s-lbl">free</div>
-      </div>`;
-    }
-  });
-  html+='</div>';
-  document.getElementById('content').innerHTML=html;
-}
-function tickUpdate(){
-  if(currentView!=='floor')return;
-  seats.forEach(s=>{
-    if(s.occupied){
-      const te=document.getElementById('t'+s.id);
-      if(te)te.textContent=fmtDur(s.t0);
-    }
-  });
-  renderStats();
+// ══════════════════════════════════════════
+// ═══ RESET BUTTON ═══
+// ══════════════════════════════════════════
+function openReset(){
+  requirePIN('Reset Data', showResetModal);
 }
 
-// ═══ FREE SEAT OPTIONS ═══
-function openFreeOptions(id){
+function showResetModal(){
   showModal(`
-    <h3>Seat #${String(id).padStart(2,'00')}</h3>
-    <p style="font-size:12px;color:#888;margin:-8px 0 14px">What would you like to do?</p>
-    <button class="btn-pri" style="margin-top:0" onclick="closeModal();openCheckin(${id})">✓ Check In Guest</button>
-    <button class="btn-pri blue" onclick="closeModal();openBlockSeat(${id})">🔒 Reserve for Appointment</button>
+    <h3 style="color:#C0392B">🗑 Reset Transactions</h3>
+    <p style="font-size:12px;color:#888;margin:-8px 0 16px;line-height:1.6">
+      Enter how many <strong>days</strong> and <strong>hours</strong> of recent data to delete.<br>
+      Example: 1 day + 6 hours = deletes last 30 hours of transactions.
+    </p>
+    <div class="reset-inputs">
+      <div class="reset-field">
+        <label>Days</label>
+        <input type="number" id="reset-days" min="0" max="365" value="0" oninput="updateResetPreview()">
+      </div>
+      <div style="display:flex;align-items:center;padding-top:22px;color:#bbb;font-size:24px">+</div>
+      <div class="reset-field">
+        <label>Hours</label>
+        <input type="number" id="reset-hours" min="0" max="23" value="0" oninput="updateResetPreview()">
+      </div>
+    </div>
+    <div class="reset-preview">
+      <div class="reset-preview-count" id="reset-count">0</div>
+      <div class="reset-preview-label" id="reset-label">Enter days or hours above</div>
+      <div class="reset-preview-range" id="reset-range"></div>
+    </div>
+    <div class="warn-box">⚠ This permanently deletes transactions from Firebase. Export first if needed.</div>
+    <button class="btn-sec" style="border-color:#185FA5;color:#185FA5;margin-top:0" onclick="exportAllCSV()">📊 Export Backup First</button>
+    <button class="btn-pri red" id="reset-confirm-btn" onclick="confirmReset()" disabled style="opacity:.4;cursor:not-allowed">🗑 Delete These Transactions</button>
     <button class="btn-sec" onclick="closeModal()">Cancel</button>
   `);
 }
 
-// ═══ CHECK-IN (with auto ID) ═══
-function openCheckin(startId,prefillName=''){
+function updateResetPreview(){
+  const days=parseInt(document.getElementById('reset-days')?.value)||0;
+  const hours=parseInt(document.getElementById('reset-hours')?.value)||0;
+  const totalMs=(days*24+hours)*60*60*1000;
+  const cutoff=Date.now()-totalMs;
+  const toDelete=txns.filter(t=>t.t1>=cutoff);
+  const countEl=document.getElementById('reset-count');
+  const labelEl=document.getElementById('reset-label');
+  const rangeEl=document.getElementById('reset-range');
+  const btnEl=document.getElementById('reset-confirm-btn');
+  if(countEl)countEl.textContent=toDelete.length;
+  if(labelEl){
+    if(days===0&&hours===0){labelEl.textContent='Enter days or hours above';}
+    else{
+      const timeStr=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');
+      labelEl.textContent=`transaction${toDelete.length!==1?'s':''} from the last ${timeStr} will be deleted`;
+    }
+  }
+  if(rangeEl&&totalMs>0){
+    const from=new Date(cutoff).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    rangeEl.textContent=`From ${from} → Now`;
+  }else if(rangeEl){rangeEl.textContent='';}
+  if(btnEl){
+    const can=totalMs>0&&toDelete.length>0;
+    btnEl.disabled=!can;btnEl.style.opacity=can?'1':'0.4';btnEl.style.cursor=can?'pointer':'not-allowed';
+  }
+}
+
+function confirmReset(){
+  const days=parseInt(document.getElementById('reset-days')?.value)||0;
+  const hours=parseInt(document.getElementById('reset-hours')?.value)||0;
+  const totalMs=(days*24+hours)*60*60*1000;
+  const cutoff=Date.now()-totalMs;
+  const toDelete=txns.filter(t=>t.t1>=cutoff);
+  if(toDelete.length===0){alert('No transactions in that time range.');return;}
+  const timeStr=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');
   showModal(`
-    <h3>Check in — seat #${String(startId).padStart(2,'00')}</h3>
+    <h3 style="text-align:center;color:#C0392B">⚠ Final Confirmation</h3>
+    <div style="text-align:center;margin:16px 0">
+      <div style="font-family:monospace;font-size:48px;font-weight:700;color:#C0392B;line-height:1">${toDelete.length}</div>
+      <div style="font-size:13px;color:#555;margin-top:8px">transaction${toDelete.length!==1?'s':''} will be permanently deleted</div>
+      <div style="font-size:11px;color:#aaa;margin-top:5px;background:#f7f7f7;border-radius:6px;padding:6px 10px;display:inline-block;margin-top:8px">Last ${timeStr}</div>
+    </div>
+    <div class="warn-box" style="text-align:center">This <strong>cannot be undone.</strong></div>
+    <button class="btn-pri red" style="margin-top:0" onclick="doReset(${cutoff})">Yes — Delete ${toDelete.length} Transaction${toDelete.length!==1?'s':''}</button>
+    <button class="btn-sec" onclick="showResetModal()">← Go Back</button>
+  `);
+}
+
+function doReset(cutoff){
+  const before=txns.length;
+  txns=txns.filter(t=>t.t1<cutoff);
+  const deleted=before-txns.length;
+  saveAll();closeModal();renderStats();
+  if(currentView==='report')renderReport();
+  else if(currentView==='floor')renderFloor();
+  showModal(`
+    <div style="text-align:center;padding:14px 0">
+      <div style="font-size:52px;margin-bottom:12px">✅</div>
+      <h3 style="font-size:17px">Reset Complete</h3>
+      <p style="font-size:13px;color:#888;margin-top:10px;line-height:1.7">
+        <span style="font-family:monospace;font-size:22px;font-weight:700;color:#C0392B;display:block">${deleted}</span>
+        transaction${deleted!==1?'s':''} deleted from Firebase.<br>
+        <strong>${txns.length}</strong> transaction${txns.length!==1?'s':''} remaining.
+      </p>
+    </div>
+    <button class="btn-pri grn" onclick="closeModal()">Done</button>
+  `);
+}
+// ══════════════════════════════════════════
+
+function renderFloor(){
+  let html=`<div class="legend"><span class="leg"><span class="ldot" style="background:#EAF3DE;border-color:#3B6D11"></span>Free</span><span class="leg"><span class="ldot" style="background:#FAEEDA;border-color:#BA7517"></span>Occupied</span><span class="leg"><span class="ldot" style="background:#E6F1FB;border-color:#185FA5"></span>Reserved</span></div><div class="seat-grid">`;
+  seats.forEach(seat=>{
+    if(seat.blocked){const bi=seat.blockInfo||{};html+=`<div class="seat blk" onclick="openBlockedOptions(${seat.id})"><div class="sn">#${String(seat.id).padStart(2,'0')}</div><div class="s-lbl-blk">RSVD</div><div class="s-grp" style="color:#185FA5;font-size:9px">${(bi.name||'').substring(0,8)||'—'}</div>${bi.time?`<div class="s-grp" style="font-size:9px">${bi.time}</div>`:''}</div>`;}
+    else if(seat.occupied){const c=getGrpColor(seat.groupId);html+=`<div class="seat occ" onclick="openCheckout('${seat.groupId}')"><span class="grp-dot" style="background:${c}"></span><div class="sn">#${String(seat.id).padStart(2,'0')}</div><div class="s-tim" id="t${seat.id}">${fmtDur(seat.t0)}</div><div class="s-grp">${seat.name||'—'} · ${seat.groupSize}p</div></div>`;}
+    else{html+=`<div class="seat free" onclick="openFreeOptions(${seat.id})"><div class="sn">#${String(seat.id).padStart(2,'0')}</div><div class="s-lbl">free</div></div>`;}
+  });
+  html+='</div>';document.getElementById('content').innerHTML=html;
+}
+function tickUpdate(){if(currentView!=='floor')return;seats.forEach(s=>{if(s.occupied){const te=document.getElementById('t'+s.id);if(te)te.textContent=fmtDur(s.t0);}});renderStats();}
+function openFreeOptions(id){showModal(`<h3>Seat #${String(id).padStart(2,'0')}</h3><p style="font-size:12px;color:#888;margin:-8px 0 14px">What would you like to do?</p><button class="btn-pri" style="margin-top:0" onclick="closeModal();openCheckin(${id})">✓ Check In Guest</button><button class="btn-pri blue" onclick="closeModal();openBlockSeat(${id})">🔒 Reserve for Appointment</button><button class="btn-sec" onclick="closeModal()">Cancel</button>`);}
+function openCheckin(startId,prefillName=''){
+  showModal(`<h3>Check in — seat #${String(startId).padStart(2,'0')}</h3>
     <div class="fgrp"><label class="flabel">Customer name (leave blank for auto ID)</label>
-      <input id="ci-name" placeholder="e.g. Ravi or leave blank → gets ID ${String(customerCounter).padStart(3,'0')}" value="${prefillName}" autocomplete="off">
+      <input id="ci-name" placeholder="e.g. Ravi — or leave blank → gets #${String(customerCounter).padStart(3,'0')}" value="${prefillName}" autocomplete="off">
     </div>
     <div class="fgrp"><label class="flabel">Number of persons</label>
-      <div class="counter">
-        <button class="cbtn" onclick="chgP(-1)">−</button>
-        <span class="cval" id="ci-p">1</span>
-        <button class="cbtn" onclick="chgP(1)">+</button>
-        <span style="font-size:11px;color:#999">× 1 seat each</span>
-      </div>
+      <div class="counter"><button class="cbtn" onclick="chgP(-1)">−</button><span class="cval" id="ci-p">1</span><button class="cbtn" onclick="chgP(1)">+</button><span style="font-size:11px;color:#999">× 1 seat each</span></div>
     </div>
     <div class="hint-box"><strong>${inr(settings.ratePerHour)}/hr per seat · Minimum 1 hour</strong></div>
     <div id="ci-warn"></div>
     <button class="btn-pri" onclick="doCheckin(${startId})">Start Session</button>
-    <button class="btn-sec" onclick="closeModal()">Cancel</button>
-  `);
+    <button class="btn-sec" onclick="closeModal()">Cancel</button>`);
 }
-function chgP(d){
-  const el=document.getElementById('ci-p');
-  const n=Math.max(1,parseInt(el.textContent)+d);
-  el.textContent=n;
-  const avail=seats.filter(s=>!s.occupied&&!s.blocked).length;
-  const w=document.getElementById('ci-warn');
-  if(w)w.innerHTML=n>avail?`<div class="warn-box">Only ${avail} free seats!</div>`:'';
-}
+function chgP(d){const el=document.getElementById('ci-p');const n=Math.max(1,parseInt(el.textContent)+d);el.textContent=n;const avail=seats.filter(s=>!s.occupied&&!s.blocked).length;const w=document.getElementById('ci-warn');if(w)w.innerHTML=n>avail?`<div class="warn-box">Only ${avail} free seats!</div>`:'';}
 function doCheckin(startId){
   const persons=parseInt(document.getElementById('ci-p').textContent);
   let name=document.getElementById('ci-name').value.trim();
-
-  // ← AUTO ID if no name entered
-  if(!name){
-    name='#'+String(customerCounter).padStart(3,'0');
-    customerCounter++;
-  }
-
-  const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{
-    const ai=a.id>=startId?a.id-startId:a.id+TOTAL_SEATS;
-    const bi=b.id>=startId?b.id-startId:b.id+TOTAL_SEATS;
-    return ai-bi;
-  });
-  if(free.length<persons){alert(`Only ${free.length} free seats available!`);return;}
-  const toOcc=free.slice(0,persons).map(s=>s.id);
-  const gid='g'+Date.now(),t0=Date.now();
+  if(!name){name='#'+String(customerCounter).padStart(3,'0');customerCounter++;}
+  const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{const ai=a.id>=startId?a.id-startId:a.id+TOTAL_SEATS;const bi=b.id>=startId?b.id-startId:b.id+TOTAL_SEATS;return ai-bi;});
+  if(free.length<persons){alert(`Only ${free.length} free seats!`);return;}
+  const toOcc=free.slice(0,persons).map(s=>s.id);const gid='g'+Date.now(),t0=Date.now();
   seats=seats.map(s=>toOcc.includes(s.id)?{...s,occupied:true,name,t0,groupId:gid,groupSize:persons}:s);
-  saveAll();closeModal();
-  if(currentView==='floor')renderFloor();
+  saveAll();closeModal();if(currentView==='floor')renderFloor();
 }
-
-// ═══ BLOCK / RESERVE ═══
 function openBlockSeat(startId){
-  showModal(`
-    <h3>Reserve Seat #${String(startId).padStart(2,'00')}</h3>
+  showModal(`<h3>Reserve Seat #${String(startId).padStart(2,'0')}</h3>
     <div class="fgrp"><label class="flabel">Customer name</label><input id="blk-name" placeholder="Enter name..." autocomplete="off"></div>
     <div class="fgrp"><label class="flabel">Appointment time</label><input id="blk-time" type="time" value="${new Date().toTimeString().slice(0,5)}"></div>
     <div class="fgrp"><label class="flabel">Note (optional)</label><input id="blk-note" placeholder="e.g. Birthday party..."></div>
-    <div class="fgrp"><label class="flabel">Number of seats</label>
-      <div class="counter">
-        <button class="cbtn" onclick="chgBlk(-1)">−</button>
-        <span class="cval" id="blk-n">1</span>
-        <button class="cbtn" onclick="chgBlk(1)">+</button>
-      </div>
-    </div>
+    <div class="fgrp"><label class="flabel">Number of seats</label><div class="counter"><button class="cbtn" onclick="chgBlk(-1)">−</button><span class="cval" id="blk-n">1</span><button class="cbtn" onclick="chgBlk(1)">+</button></div></div>
     <button class="btn-pri blue" onclick="doBlockSeat(${startId})">Reserve Seats</button>
-    <button class="btn-sec" onclick="closeModal()">Cancel</button>
-  `);
+    <button class="btn-sec" onclick="closeModal()">Cancel</button>`);
 }
 function chgBlk(d){const el=document.getElementById('blk-n');el.textContent=Math.max(1,parseInt(el.textContent)+d);}
 function doBlockSeat(startId){
-  const name=document.getElementById('blk-name').value.trim();
-  const time=document.getElementById('blk-time').value;
-  const note=document.getElementById('blk-note').value.trim();
-  const n=parseInt(document.getElementById('blk-n').textContent);
-  const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{
-    const ai=a.id>=startId?a.id-startId:a.id+TOTAL_SEATS;
-    const bi=b.id>=startId?b.id-startId:b.id+TOTAL_SEATS;
-    return ai-bi;
-  });
+  const name=document.getElementById('blk-name').value.trim(),time=document.getElementById('blk-time').value,note=document.getElementById('blk-note').value.trim(),n=parseInt(document.getElementById('blk-n').textContent);
+  const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{const ai=a.id>=startId?a.id-startId:a.id+TOTAL_SEATS;const bi=b.id>=startId?b.id-startId:b.id+TOTAL_SEATS;return ai-bi;});
   if(free.length<n){alert(`Only ${free.length} free seats!`);return;}
   const toBlk=free.slice(0,n).map(s=>s.id);
   seats=seats.map(s=>toBlk.includes(s.id)?{...s,blocked:true,blockInfo:{name,time,note}}:s);
-  saveAll();closeModal();
-  if(currentView==='floor')renderFloor();
+  saveAll();closeModal();if(currentView==='floor')renderFloor();
 }
 function openBlockedOptions(id){
-  const seat=seats.find(s=>s.id===id);
-  const bi=seat.blockInfo||{};
-  showModal(`
-    <h3>Reserved — Seat #${String(id).padStart(2,'00')}</h3>
+  const seat=seats.find(s=>s.id===id),bi=seat.blockInfo||{};
+  showModal(`<h3>Reserved — Seat #${String(id).padStart(2,'0')}</h3>
     <div class="bill-box">
       <div class="brow"><span class="lbl">Name</span><span class="val" style="font-family:inherit">${bi.name||'—'}</span></div>
       <div class="brow"><span class="lbl">Time</span><span class="val">${bi.time||'—'}</span></div>
@@ -487,68 +422,22 @@ function openBlockedOptions(id){
     <button class="btn-pri" style="margin-top:0" onclick="convertToCheckin(${id})">✓ Check In Now</button>
     <button class="btn-sec" style="border-color:#BA7517;color:#BA7517" onclick="editBlockedSeat(${id})">✎ Edit</button>
     <button class="btn-sec" style="border-color:#C0392B;color:#C0392B" onclick="requirePIN('Remove Reservation',()=>unblockSeat(${id}))">✕ Remove</button>
-    <button class="btn-sec" onclick="closeModal()">Close</button>
-  `);
+    <button class="btn-sec" onclick="closeModal()">Close</button>`);
 }
-function convertToCheckin(id){
-  const seat=seats.find(s=>s.id===id);
-  const name=(seat.blockInfo||{}).name||'';
-  seats=seats.map(s=>s.id===id?{...s,blocked:false,blockInfo:null}:s);
-  saveAll();closeModal();openCheckin(id,name);
-}
-function editBlockedSeat(id){
-  const bi=(seats.find(s=>s.id===id)||{}).blockInfo||{};
-  closeModal();
-  showModal(`
-    <h3>Edit Reservation — #${String(id).padStart(2,'00')}</h3>
-    <div class="fgrp"><label class="flabel">Customer name</label><input id="eblk-name" value="${bi.name||''}"></div>
-    <div class="fgrp"><label class="flabel">Time</label><input id="eblk-time" type="time" value="${bi.time||''}"></div>
-    <div class="fgrp"><label class="flabel">Note</label><input id="eblk-note" value="${bi.note||''}"></div>
-    <button class="btn-pri" onclick="doEditBlock(${id})">Save</button>
-    <button class="btn-sec" onclick="openBlockedOptions(${id})">← Back</button>
-  `);
-}
-function doEditBlock(id){
-  const name=document.getElementById('eblk-name').value.trim();
-  const time=document.getElementById('eblk-time').value;
-  const note=document.getElementById('eblk-note').value.trim();
-  seats=seats.map(s=>s.id===id?{...s,blockInfo:{name,time,note}}:s);
-  saveAll();closeModal();
-  if(currentView==='floor')renderFloor();
-}
-function unblockSeat(id){
-  seats=seats.map(s=>s.id===id?{...s,blocked:false,blockInfo:null}:s);
-  saveAll();closeModal();
-  if(currentView==='floor')renderFloor();
-}
+function convertToCheckin(id){const seat=seats.find(s=>s.id===id),name=(seat.blockInfo||{}).name||'';seats=seats.map(s=>s.id===id?{...s,blocked:false,blockInfo:null}:s);saveAll();closeModal();openCheckin(id,name);}
+function editBlockedSeat(id){const bi=(seats.find(s=>s.id===id)||{}).blockInfo||{};closeModal();showModal(`<h3>Edit Reservation — #${String(id).padStart(2,'0')}</h3><div class="fgrp"><label class="flabel">Name</label><input id="eblk-name" value="${bi.name||''}"></div><div class="fgrp"><label class="flabel">Time</label><input id="eblk-time" type="time" value="${bi.time||''}"></div><div class="fgrp"><label class="flabel">Note</label><input id="eblk-note" value="${bi.note||''}"></div><button class="btn-pri" onclick="doEditBlock(${id})">Save</button><button class="btn-sec" onclick="openBlockedOptions(${id})">← Back</button>`);}
+function doEditBlock(id){const name=document.getElementById('eblk-name').value.trim(),time=document.getElementById('eblk-time').value,note=document.getElementById('eblk-note').value.trim();seats=seats.map(s=>s.id===id?{...s,blockInfo:{name,time,note}}:s);saveAll();closeModal();if(currentView==='floor')renderFloor();}
+function unblockSeat(id){seats=seats.map(s=>s.id===id?{...s,blocked:false,blockInfo:null}:s);saveAll();closeModal();if(currentView==='floor')renderFloor();}
 
-// ═══ CHECKOUT ═══
 function openCheckout(gid){
-  selectedMethod='cash';
-  const grp=seats.filter(s=>s.groupId===gid);
-  if(!grp.length)return;
+  selectedMethod='cash';const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;
   const s0=grp[0],persons=s0.groupSize;
-  if(!coInfo||coInfo.gid!==gid)cartItems={};
-  coInfo={gid,t0:s0.t0,persons};
-  const seatNums=grp.map(s=>'#'+String(s.id).padStart(2,'00')).join(', ');
+  if(!coInfo||coInfo.gid!==gid)cartItems={};coInfo={gid,t0:s0.t0,persons};
+  const seatNums=grp.map(s=>'#'+String(s.id).padStart(2,'0')).join(', ');
   const sc=calcSeatCharge(s0.t0,persons);
   const cats=[...new Set(menuItems.map(m=>m.category))];
-  const menuHTML=cats.map(cat=>{
-    const items=menuItems.filter(m=>m.category===cat);
-    return `<div style="margin-bottom:8px">
-      <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${cat}</div>
-      ${items.map(it=>`<div class="add-row">
-        <div><span style="font-size:12px">${it.name}</span><span style="font-size:11px;color:#aaa;margin-left:4px">${inr(it.price)}</span></div>
-        <div style="display:flex;align-items:center;gap:5px">
-          <button class="cbtn" style="width:24px;height:24px;font-size:13px" onclick="chgCart('${it.id}',-1)">−</button>
-          <span style="font-family:monospace;font-size:12px;min-width:14px;text-align:center" id="cart-${it.id}">${cartItems[it.id]||0}</span>
-          <button class="cbtn" style="width:24px;height:24px;font-size:13px" onclick="chgCart('${it.id}',1)">+</button>
-        </div>
-      </div>`).join('')}
-    </div>`;
-  }).join('');
-  showModal(`
-    <h3>Checkout — ${persons}p</h3>
+  const menuHTML=cats.map(cat=>{const items=menuItems.filter(m=>m.category===cat);return `<div style="margin-bottom:8px"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${cat}</div>${items.map(it=>`<div class="add-row"><div><span style="font-size:12px">${it.name}</span><span style="font-size:11px;color:#aaa;margin-left:4px">${inr(it.price)}</span></div><div style="display:flex;align-items:center;gap:5px"><button class="cbtn" style="width:24px;height:24px;font-size:13px" onclick="chgCart('${it.id}',-1)">−</button><span style="font-family:monospace;font-size:12px;min-width:14px;text-align:center" id="cart-${it.id}">${cartItems[it.id]||0}</span><button class="cbtn" style="width:24px;height:24px;font-size:13px" onclick="chgCart('${it.id}',1)">+</button></div></div>`).join('')}</div>`;}).join('');
+  showModal(`<h3>Checkout — ${persons}p</h3>
     <div class="bill-box">
       <div class="brow"><span class="lbl">Customer</span><span class="val" style="font-family:inherit">${s0.name}</span></div>
       <div class="brow"><span class="lbl">Seats</span><span class="val" style="font-family:inherit;font-size:10px">${seatNums}</span></div>
@@ -561,158 +450,45 @@ function openCheckout(gid){
     </div>
     <div style="font-size:11px;font-weight:600;color:#666;margin-bottom:5px">+ Add food & beverages</div>
     <div style="max-height:155px;overflow-y:auto;border:1px solid #eee;border-radius:8px;padding:8px 10px;background:#fafafa;margin-bottom:10px">${menuHTML}</div>
-
-    <div class="fgrp"><label class="flabel">📱 Customer Phone (for WhatsApp bill)</label>
-      <input id="co-phone" type="tel" placeholder="10-digit mobile number (optional)" maxlength="10">
-    </div>
-
+    <div class="fgrp"><label class="flabel">📱 Phone (for WhatsApp bill — optional)</label><input id="co-phone" type="tel" placeholder="10-digit mobile number" maxlength="10"></div>
     <div class="fgrp"><label class="flabel">Payment method</label>
-      <div class="pay-row">
-        <button class="pbtn sel" id="pm-cash" onclick="selM('cash')">CASH</button>
-        <button class="pbtn" id="pm-upi" onclick="selM('upi')">UPI</button>
-        <button class="pbtn" id="pm-card" onclick="selM('card')">CARD</button>
-      </div>
+      <div class="pay-row"><button class="pbtn sel" id="pm-cash" onclick="selM('cash')">CASH</button><button class="pbtn" id="pm-upi" onclick="selM('upi')">UPI</button><button class="pbtn" id="pm-card" onclick="selM('card')">CARD</button></div>
     </div>
     <button class="btn-pri" id="co-btn" onclick="doCheckout('${gid}')">Confirm Checkout — ${inr(sc)}</button>
     <button class="btn-sec" style="border-color:#BA7517;color:#BA7517" onclick="requirePIN('Edit/Cancel Session',()=>openEditSession('${gid}'))">✎ Edit / Cancel Session</button>
-    <button class="btn-sec" onclick="closeModal()">Keep Session Running</button>
-  `);
-  if(window._coIv)clearInterval(window._coIv);
-  window._coIv=setInterval(refreshCoTotals,1000);
+    <button class="btn-sec" onclick="closeModal()">Keep Session Running</button>`);
+  if(window._coIv)clearInterval(window._coIv);window._coIv=setInterval(refreshCoTotals,1000);
 }
-function chgCart(itemId,d){
-  cartItems[itemId]=Math.max(0,(cartItems[itemId]||0)+d);
-  if(!cartItems[itemId])delete cartItems[itemId];
-  const el=document.getElementById('cart-'+itemId);
-  if(el)el.textContent=cartItems[itemId]||0;
-  refreshCoTotals();
-}
-function refreshCoTotals(){
-  if(!coInfo)return;
-  const sc=calcSeatCharge(coInfo.t0,coInfo.persons);
-  const ao=calcCartTotal();
-  const total=sc+ao;
-  const d=document.getElementById('co-d');
-  const s=document.getElementById('co-sc');
-  const a=document.getElementById('co-ao');
-  const t=document.getElementById('co-total');
-  const b=document.getElementById('co-btn');
-  if(d)d.textContent=fmtDur(coInfo.t0);
-  if(s)s.textContent=inr(sc);
-  if(a)a.textContent=inr(ao);
-  if(t)t.textContent=inr(total);
-  if(b)b.textContent=`Confirm Checkout — ${inr(total)}`;
-}
-function selM(m){
-  selectedMethod=m;
-  ['cash','upi','card'].forEach(x=>{const el=document.getElementById('pm-'+x);if(el)el.classList.toggle('sel',x===m);});
-}
-
-// ═══ CHECKOUT CONFIRM ═══
+function chgCart(itemId,d){cartItems[itemId]=Math.max(0,(cartItems[itemId]||0)+d);if(!cartItems[itemId])delete cartItems[itemId];const el=document.getElementById('cart-'+itemId);if(el)el.textContent=cartItems[itemId]||0;refreshCoTotals();}
+function refreshCoTotals(){if(!coInfo)return;const sc=calcSeatCharge(coInfo.t0,coInfo.persons),ao=calcCartTotal(),total=sc+ao;const d=document.getElementById('co-d'),s=document.getElementById('co-sc'),a=document.getElementById('co-ao'),t=document.getElementById('co-total'),b=document.getElementById('co-btn');if(d)d.textContent=fmtDur(coInfo.t0);if(s)s.textContent=inr(sc);if(a)a.textContent=inr(ao);if(t)t.textContent=inr(total);if(b)b.textContent=`Confirm Checkout — ${inr(total)}`;}
+function selM(m){selectedMethod=m;['cash','upi','card'].forEach(x=>{const el=document.getElementById('pm-'+x);if(el)el.classList.toggle('sel',x===m);});}
 function doCheckout(gid){
   if(window._coIv){clearInterval(window._coIv);window._coIv=null;}
-  const grp=seats.filter(s=>s.groupId===gid);
-  if(!grp.length)return;
-  const s0=grp[0],persons=s0.groupSize;
-  const sc=calcSeatCharge(s0.t0,persons);
-  const ao=calcCartTotal();
-  const total=sc+ao;
-
-  // ← PHONE VALIDATION
+  const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;
+  const s0=grp[0],persons=s0.groupSize,sc=calcSeatCharge(s0.t0,persons),ao=calcCartTotal(),total=sc+ao;
   const phone=document.getElementById('co-phone')?.value.trim()||'';
-  if(phone&&!/^[0-9]{10}$/.test(phone)){
-    alert('Enter a valid 10-digit phone number or leave blank.');
-    return;
-  }
-
+  if(phone&&!/^[0-9]{10}$/.test(phone)){alert('Enter valid 10-digit phone or leave blank.');return;}
   const threshold=settings.largeBillThreshold||500;
-  if(total>=threshold){
-    showModal(`
-      <h3 style="text-align:center">Confirm Payment</h3>
-      <div class="big-bill">
-        <div class="big-bill-amt">${inr(total)}</div>
-        <div class="big-bill-lbl">${s0.name} · ${persons} seat${persons>1?'s':''} · ${selectedMethod.toUpperCase()}</div>
-      </div>
-      <div class="warn-box" style="text-align:center">Confirm amount with customer before proceeding.</div>
-      <button class="btn-pri" onclick="finalizeCheckout('${gid}','${phone}')">✓ Confirmed — Proceed</button>
-      <button class="btn-sec" onclick="openCheckout('${gid}')">← Go Back</button>
-    `);
-    return;
-  }
+  if(total>=threshold){showModal(`<h3 style="text-align:center">Confirm Payment</h3><div class="big-bill"><div class="big-bill-amt">${inr(total)}</div><div class="big-bill-lbl">${s0.name} · ${persons} seat${persons>1?'s':''} · ${selectedMethod.toUpperCase()}</div></div><div class="warn-box" style="text-align:center">Confirm with customer before proceeding.</div><button class="btn-pri" onclick="finalizeCheckout('${gid}','${phone}')">✓ Confirmed — Proceed</button><button class="btn-sec" onclick="openCheckout('${gid}')">← Go Back</button>`);return;}
   finalizeCheckout(gid,phone);
 }
-
 function finalizeCheckout(gid,phone=''){
-  const grp=seats.filter(s=>s.groupId===gid);
-  if(!grp.length)return;
-  const s0=grp[0],persons=s0.groupSize;
-  const sc=calcSeatCharge(s0.t0,persons);
-  const ao=calcCartTotal();
-  const addons=getCartAddons();
-  const tx={
-    id:Date.now(),
-    seatIds:grp.map(s=>s.id),
-    name:s0.name,
-    phone:phone||'',
-    persons,t0:s0.t0,t1:Date.now(),
-    seatCharge:sc,addons,
-    totalAmount:sc+ao,
-    method:selectedMethod,
-    date:todayStr()
-  };
+  const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;
+  const s0=grp[0],persons=s0.groupSize,sc=calcSeatCharge(s0.t0,persons),ao=calcCartTotal(),addons=getCartAddons();
+  const tx={id:Date.now(),seatIds:grp.map(s=>s.id),name:s0.name,phone:phone||'',persons,t0:s0.t0,t1:Date.now(),seatCharge:sc,addons,totalAmount:sc+ao,method:selectedMethod,date:todayStr()};
   seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0}:s);
-  delete groupColorMap[gid];
-  txns=[tx,...txns];cartItems={};coInfo=null;
-  saveAll();showReceipt(tx);
-  if(currentView==='floor')renderFloor();
+  delete groupColorMap[gid];txns=[tx,...txns];cartItems={};coInfo=null;
+  saveAll();showReceipt(tx);if(currentView==='floor')renderFloor();
 }
+function openEditSession(gid){const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;const s0=grp[0];showModal(`<h3>Edit Session</h3><div class="fgrp"><label class="flabel">Customer name</label><input id="es-name" value="${s0.name}" placeholder="Enter name..."></div><button class="btn-pri" style="margin-top:0" onclick="doEditSession('${gid}')">Save Changes</button><button class="btn-pri red" onclick="confirmCancelSession('${gid}')">✕ Cancel Session (No Charge)</button><button class="btn-sec" onclick="openCheckout('${gid}')">← Back to Checkout</button>`);}
+function doEditSession(gid){const name=document.getElementById('es-name').value.trim();seats=seats.map(s=>s.groupId===gid?{...s,name}:s);saveAll();closeModal();if(currentView==='floor')renderFloor();}
+function confirmCancelSession(gid){const grp=seats.filter(s=>s.groupId===gid),s0=grp[0];showModal(`<h3>Cancel Session?</h3><div class="warn-box">⚠ Frees all ${s0.groupSize} seat(s) with NO charge.</div><button class="btn-pri red" style="margin-top:0" onclick="doCancelSession('${gid}')">Yes, Cancel — No Charge</button><button class="btn-sec" onclick="openCheckout('${gid}')">No — Back to Checkout</button>`);}
+function doCancelSession(gid){seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0}:s);delete groupColorMap[gid];cartItems={};coInfo=null;saveAll();closeModal();if(currentView==='floor')renderFloor();}
 
-// ═══ EDIT / CANCEL SESSION ═══
-function openEditSession(gid){
-  const grp=seats.filter(s=>s.groupId===gid);
-  if(!grp.length)return;
-  const s0=grp[0];
-  showModal(`
-    <h3>Edit Session</h3>
-    <div class="fgrp"><label class="flabel">Customer name</label><input id="es-name" value="${s0.name}" placeholder="Enter name..."></div>
-    <button class="btn-pri" style="margin-top:0" onclick="doEditSession('${gid}')">Save Changes</button>
-    <button class="btn-pri red" onclick="confirmCancelSession('${gid}')">✕ Cancel Session (No Charge)</button>
-    <button class="btn-sec" onclick="openCheckout('${gid}')">← Back to Checkout</button>
-  `);
-}
-function doEditSession(gid){
-  const name=document.getElementById('es-name').value.trim();
-  seats=seats.map(s=>s.groupId===gid?{...s,name}:s);
-  saveAll();closeModal();
-  if(currentView==='floor')renderFloor();
-}
-function confirmCancelSession(gid){
-  const grp=seats.filter(s=>s.groupId===gid);
-  const s0=grp[0];
-  showModal(`
-    <h3>Cancel Session?</h3>
-    <div class="warn-box">⚠ Frees all ${s0.groupSize} seat(s) with NO charge. Cannot be undone.</div>
-    <button class="btn-pri red" style="margin-top:0" onclick="doCancelSession('${gid}')">Yes, Cancel — No Charge</button>
-    <button class="btn-sec" onclick="openCheckout('${gid}')">No — Back to Checkout</button>
-  `);
-}
-function doCancelSession(gid){
-  seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0}:s);
-  delete groupColorMap[gid];cartItems={};coInfo=null;
-  saveAll();closeModal();
-  if(currentView==='floor')renderFloor();
-}
-
-// ═══ RECEIPT ═══
 function showReceipt(tx){
-  const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'00')).join(', ');
+  const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
   const aoHTML=tx.addons&&tx.addons.length?tx.addons.map(a=>`<div class="brow"><span class="lbl">${a.name} ×${a.qty}</span><span class="val">${inr(a.price*a.qty)}</span></div>`).join(''):'';
-  showModal(`
-    <div style="text-align:center;margin-bottom:14px">
-      <div style="font-size:16px;font-weight:700">${settings.cafeName}</div>
-      ${settings.address?`<div style="font-size:11px;color:#999">${settings.address}</div>`:''}
-      <div style="font-size:11px;color:#999;margin-top:2px">${new Date(tx.t1).toLocaleString('en-IN')}</div>
-    </div>
+  showModal(`<div style="text-align:center;margin-bottom:14px"><div style="font-size:16px;font-weight:700">${settings.cafeName}</div>${settings.address?`<div style="font-size:11px;color:#999">${settings.address}</div>`:''}<div style="font-size:11px;color:#999;margin-top:2px">${new Date(tx.t1).toLocaleString('en-IN')}</div></div>
     <div class="bill-box" style="font-size:12px">
       <div class="brow"><span class="lbl">Customer</span><span class="val" style="font-family:inherit">${tx.name}</span></div>
       <div class="brow"><span class="lbl">Seats (${tx.persons})</span><span class="val" style="font-family:inherit;font-size:10px">${sl}</span></div>
@@ -722,390 +498,95 @@ function showReceipt(tx){
       <div style="border-top:1px dashed #ccc;margin:7px 0"></div>
       <div class="brow"><span class="lbl">Payment</span><span class="tag ${tx.method}">${tx.method.toUpperCase()}</span></div>
       <div style="border-top:1px solid #ddd;margin:7px 0"></div>
-      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:2px 0">
-        <span style="color:#888">TOTAL</span><span style="color:#BA7517">${inr(tx.totalAmount)}</span>
-      </div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:2px 0"><span style="color:#888">TOTAL</span><span style="color:#BA7517">${inr(tx.totalAmount)}</span></div>
     </div>
     <div class="btn-row">
       <button class="btn-sec" style="flex:1;margin-top:0" onclick="printR(${tx.id})">🖨️ Print</button>
       ${tx.phone?`<button class="btn-pri whatsapp" style="flex:1;margin-top:0" onclick="sendWhatsApp(${tx.id})">💬 WhatsApp</button>`:''}
       <button class="btn-pri" style="flex:2;margin-top:0" onclick="closeModal()">Done</button>
-    </div>
-  `);
+    </div>`);
 }
-
-// ═══ WHATSAPP ← NEW ═══
-function sendWhatsApp(txId){
-  const tx=txns.find(t=>t.id===txId);
-  if(!tx||!tx.phone){alert('No phone number saved.');return;}
-  const ao=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
-  const msg=`Hi ${tx.name} 👋\n\nThank you for visiting ${settings.cafeName} 🎲\n\n🧾 Your Bill:\nSeats: ${tx.persons}\nDuration: ${fmtMins(tx.t1-tx.t0)}\nSeat charge: ${inr(tx.seatCharge)}${ao?`\nFood & drinks: ${inr(ao)}`:''}\n\n✅ Total Paid: ${inr(tx.totalAmount)} (${tx.method.toUpperCase()})\n\nVisit us again soon! 😊`;
-  window.open(`https://wa.me/91${tx.phone}?text=${encodeURIComponent(msg)}`);
-}
-
-// ═══ PRINT ═══
+function sendWhatsApp(txId){const tx=txns.find(t=>t.id===txId);if(!tx||!tx.phone){alert('No phone number.');return;}const ao=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;const msg=`Hi ${tx.name} 👋\n\nThank you for visiting ${settings.cafeName} 🎲\n\n🧾 Your Bill:\nSeats: ${tx.persons}\nDuration: ${fmtMins(tx.t1-tx.t0)}\nSeat charge: ${inr(tx.seatCharge)}${ao?`\nFood & drinks: ${inr(ao)}`:''}\n\n✅ Total Paid: ${inr(tx.totalAmount)} (${tx.method.toUpperCase()})\n\nVisit us again soon! 😊`;window.open(`https://wa.me/91${tx.phone}?text=${encodeURIComponent(msg)}`);}
 function printR(txId){
-  const tx=txns.find(t=>t.id===txId);
-  if(!tx)return;
-  const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'00')).join(', ');
+  const tx=txns.find(t=>t.id===txId);if(!tx)return;
+  const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
   const ao=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
-  const aoRows=tx.addons&&tx.addons.length?
-    `<tr><td colspan="2" style="padding:5px 0 2px;font-size:11px;color:#888">Food & Beverages</td></tr>
-    ${tx.addons.map(a=>`<tr><td>${a.name} ×${a.qty}</td><td style="text-align:right">Rs.${Math.round(a.price*a.qty).toLocaleString('en-IN')}</td></tr>`).join('')}`:'';
+  const aoRows=tx.addons&&tx.addons.length?`<tr><td colspan="2" style="padding:5px 0 2px;font-size:11px;color:#888">Food & Beverages</td></tr>${tx.addons.map(a=>`<tr><td>${a.name} ×${a.qty}</td><td style="text-align:right">Rs.${Math.round(a.price*a.qty).toLocaleString('en-IN')}</td></tr>`).join('')}`:'';
   const w=window.open('','_blank','width=400,height=720');
-  w.document.write(`<html><head><title>Receipt</title>
-  <style>body{font-family:monospace;font-size:13px;width:290px;margin:auto;padding:20px}
-  h2{text-align:center;font-size:17px;margin:0 0 2px}.sub{text-align:center;font-size:11px;color:#888;margin-bottom:12px}
-  table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px solid #eee}
-  hr{border:none;border-top:1px dashed #ccc;margin:10px 0}.big{font-size:18px;font-weight:bold}</style></head>
-  <body>
-  <h2>${settings.cafeName}</h2>
-  ${settings.address?`<p class="sub">${settings.address}</p>`:''}
-  <p class="sub">${new Date(tx.t1).toLocaleString('en-IN')}</p>
-  <table>
-  <tr><td>Customer</td><td style="text-align:right">${tx.name}</td></tr>
-  <tr><td>Seats(${tx.persons})</td><td style="text-align:right;font-size:11px">${sl}</td></tr>
-  <tr><td>Duration</td><td style="text-align:right">${fmtMins(tx.t1-tx.t0)}</td></tr>
-  <tr><td>Rate</td><td style="text-align:right">Rs.${settings.ratePerHour}/hr/seat</td></tr>
-  <tr><td>Seat charge</td><td style="text-align:right">Rs.${Math.round(tx.seatCharge).toLocaleString('en-IN')}</td></tr>
-  ${aoRows}
-  </table>
-  <hr><table><tr><td>Payment</td><td style="text-align:right">${tx.method.toUpperCase()}</td></tr></table><hr>
-  <table><tr class="big"><td>TOTAL</td><td style="text-align:right">Rs.${Math.round(tx.totalAmount).toLocaleString('en-IN')}</td></tr></table>
-  <p style="text-align:center;font-size:11px;margin-top:16px;color:#aaa">Thank you for visiting! 🎲</p>
-  <scr`+`ipt>window.onload=function(){window.print();window.close();}<\/scr`+`ipt>
-  </body></html>`);
+  w.document.write(`<html><head><title>Receipt</title><style>body{font-family:monospace;font-size:13px;width:290px;margin:auto;padding:20px}h2{text-align:center;font-size:17px;margin:0 0 2px}.sub{text-align:center;font-size:11px;color:#888;margin-bottom:12px}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px solid #eee}hr{border:none;border-top:1px dashed #ccc;margin:10px 0}.big{font-size:18px;font-weight:bold}</style></head><body><h2>${settings.cafeName}</h2>${settings.address?`<p class="sub">${settings.address}</p>`:''}<p class="sub">${new Date(tx.t1).toLocaleString('en-IN')}</p><table><tr><td>Customer</td><td style="text-align:right">${tx.name}</td></tr><tr><td>Seats(${tx.persons})</td><td style="text-align:right;font-size:11px">${sl}</td></tr><tr><td>Duration</td><td style="text-align:right">${fmtMins(tx.t1-tx.t0)}</td></tr><tr><td>Rate</td><td style="text-align:right">Rs.${settings.ratePerHour}/hr/seat</td></tr><tr><td>Seat charge</td><td style="text-align:right">Rs.${Math.round(tx.seatCharge).toLocaleString('en-IN')}</td></tr>${aoRows}</table><hr><table><tr><td>Payment</td><td style="text-align:right">${tx.method.toUpperCase()}</td></tr></table><hr><table><tr class="big"><td>TOTAL</td><td style="text-align:right">Rs.${Math.round(tx.totalAmount).toLocaleString('en-IN')}</td></tr></table><p style="text-align:center;font-size:11px;margin-top:16px;color:#aaa">Thank you for visiting! 🎲</p><scr`+`ipt>window.onload=function(){window.print();window.close();}<\/scr`+`ipt></body></html>`);
   w.document.close();
 }
 
-// ═══ MENU VIEW ═══
 function renderMenu(){
   const cats=[...new Set(menuItems.map(m=>m.category))];
-  let html=`<div style="padding:14px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div style="font-size:14px;font-weight:600">Menu (${menuItems.length} items)</div>
-      <button class="btn-pri" style="width:auto;padding:7px 13px;margin-top:0;font-size:12px" onclick="openAddMenuItem()">+ Add Item</button>
-    </div>`;
+  let html=`<div style="padding:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:14px;font-weight:600">Menu (${menuItems.length} items)</div><button class="btn-pri" style="width:auto;padding:7px 13px;margin-top:0;font-size:12px" onclick="openAddMenuItem()">+ Add Item</button></div>`;
   if(!menuItems.length){html+=`<div class="empty">No menu items yet.</div>`;}
-  cats.forEach(cat=>{
-    html+=`<div class="sec-lbl" style="margin-top:10px">${cat}</div>`;
-    menuItems.filter(m=>m.category===cat).forEach(item=>{
-      html+=`<div class="menu-item-row">
-        <div><div style="font-size:13px;font-weight:500">${item.name}</div><div style="font-size:11px;color:#888">${item.category}</div></div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="font-family:monospace;font-size:13px;font-weight:700">${inr(item.price)}</div>
-          <button class="mi-btn" style="border-color:#ccc;color:#555" onclick="openEditMenuItem('${item.id}')">Edit</button>
-          <button class="mi-btn" style="border-color:#C0392B;color:#C0392B" onclick="deleteMenuItem('${item.id}')">Delete</button>
-        </div>
-      </div>`;
-    });
-  });
-  html+='</div>';
-  document.getElementById('content').innerHTML=html;
+  cats.forEach(cat=>{html+=`<div class="sec-lbl" style="margin-top:10px">${cat}</div>`;menuItems.filter(m=>m.category===cat).forEach(item=>{html+=`<div class="menu-item-row"><div><div style="font-size:13px;font-weight:500">${item.name}</div><div style="font-size:11px;color:#888">${item.category}</div></div><div style="display:flex;align-items:center;gap:8px"><div style="font-family:monospace;font-size:13px;font-weight:700">${inr(item.price)}</div><button class="mi-btn" style="border-color:#ccc;color:#555" onclick="openEditMenuItem('${item.id}')">Edit</button><button class="mi-btn" style="border-color:#C0392B;color:#C0392B" onclick="deleteMenuItem('${item.id}')">Delete</button></div></div>`;});});
+  html+='</div>';document.getElementById('content').innerHTML=html;
 }
-function openAddMenuItem(){
-  showModal(`
-    <h3>Add Menu Item</h3>
-    <div class="fgrp"><label class="flabel">Item name</label><input id="mi-name" placeholder="e.g. Filter Coffee"></div>
-    <div class="fgrp"><label class="flabel">Price (₹)</label><input id="mi-price" type="number" min="1" placeholder="e.g. 30"></div>
-    <div class="fgrp"><label class="flabel">Category</label>
-      <select id="mi-cat">${MENU_CATS.map(c=>`<option>${c}</option>`).join('')}</select>
-    </div>
-    <button class="btn-pri" onclick="doAddMenuItem()">Add Item</button>
-    <button class="btn-sec" onclick="closeModal()">Cancel</button>
-  `);
-}
-function doAddMenuItem(){
-  const name=document.getElementById('mi-name').value.trim();
-  const price=parseFloat(document.getElementById('mi-price').value);
-  const category=document.getElementById('mi-cat').value;
-  if(!name||!price||price<=0){alert('Please enter a valid name and price.');return;}
-  menuItems.push({id:'m'+Date.now(),name,price,category});
-  saveAll();closeModal();
-  if(currentView==='menu')renderMenu();
-}
-function openEditMenuItem(id){
-  const it=menuItems.find(m=>m.id===id);if(!it)return;
-  showModal(`
-    <h3>Edit Item</h3>
-    <div class="fgrp"><label class="flabel">Item name</label><input id="mi-name" value="${it.name}"></div>
-    <div class="fgrp"><label class="flabel">Price (₹)</label><input id="mi-price" type="number" value="${it.price}"></div>
-    <div class="fgrp"><label class="flabel">Category</label>
-      <select id="mi-cat">${MENU_CATS.map(c=>`<option${c===it.category?' selected':''}>${c}</option>`).join('')}</select>
-    </div>
-    <button class="btn-pri" onclick="doEditMenuItem('${id}')">Save Changes</button>
-    <button class="btn-sec" onclick="closeModal()">Cancel</button>
-  `);
-}
-function doEditMenuItem(id){
-  const name=document.getElementById('mi-name').value.trim();
-  const price=parseFloat(document.getElementById('mi-price').value);
-  const category=document.getElementById('mi-cat').value;
-  if(!name||!price||price<=0){alert('Please enter valid name and price.');return;}
-  menuItems=menuItems.map(m=>m.id===id?{...m,name,price,category}:m);
-  saveAll();closeModal();
-  if(currentView==='menu')renderMenu();
-}
-function deleteMenuItem(id){
-  if(!confirm('Delete this item?'))return;
-  menuItems=menuItems.filter(m=>m.id!==id);
-  saveAll();if(currentView==='menu')renderMenu();
-}
+function openAddMenuItem(){showModal(`<h3>Add Menu Item</h3><div class="fgrp"><label class="flabel">Item name</label><input id="mi-name" placeholder="e.g. Filter Coffee"></div><div class="fgrp"><label class="flabel">Price (₹)</label><input id="mi-price" type="number" min="1" placeholder="e.g. 30"></div><div class="fgrp"><label class="flabel">Category</label><select id="mi-cat">${MENU_CATS.map(c=>`<option>${c}</option>`).join('')}</select></div><button class="btn-pri" onclick="doAddMenuItem()">Add Item</button><button class="btn-sec" onclick="closeModal()">Cancel</button>`);}
+function doAddMenuItem(){const name=document.getElementById('mi-name').value.trim(),price=parseFloat(document.getElementById('mi-price').value),category=document.getElementById('mi-cat').value;if(!name||!price||price<=0){alert('Enter valid name and price.');return;}menuItems.push({id:'m'+Date.now(),name,price,category});saveAll();closeModal();if(currentView==='menu')renderMenu();}
+function openEditMenuItem(id){const it=menuItems.find(m=>m.id===id);if(!it)return;showModal(`<h3>Edit Item</h3><div class="fgrp"><label class="flabel">Item name</label><input id="mi-name" value="${it.name}"></div><div class="fgrp"><label class="flabel">Price (₹)</label><input id="mi-price" type="number" value="${it.price}"></div><div class="fgrp"><label class="flabel">Category</label><select id="mi-cat">${MENU_CATS.map(c=>`<option${c===it.category?' selected':''}>${c}</option>`).join('')}</select></div><button class="btn-pri" onclick="doEditMenuItem('${id}')">Save Changes</button><button class="btn-sec" onclick="closeModal()">Cancel</button>`);}
+function doEditMenuItem(id){const name=document.getElementById('mi-name').value.trim(),price=parseFloat(document.getElementById('mi-price').value),category=document.getElementById('mi-cat').value;if(!name||!price||price<=0){alert('Enter valid name and price.');return;}menuItems=menuItems.map(m=>m.id===id?{...m,name,price,category}:m);saveAll();closeModal();if(currentView==='menu')renderMenu();}
+function deleteMenuItem(id){if(!confirm('Delete this item?'))return;menuItems=menuItems.filter(m=>m.id!==id);saveAll();if(currentView==='menu')renderMenu();}
 
-// ═══ REPORT VIEW ═══
 function renderReport(){
-  const dates=allDates();
-  const tx=txnsForDate(reportDate);
-  const rev=tx.reduce((s,t)=>s+t.totalAmount,0);
-  const seatRev=tx.reduce((s,t)=>s+t.seatCharge,0);
-  const aoRev=tx.reduce((s,t)=>s+(t.addons?t.addons.reduce((a,i)=>a+i.price*i.qty,0):0),0);
-  let html=`<div class="rpt">
-    <div class="sec-lbl">Select date</div>
-    <div class="date-pills">
-      ${dates.slice(0,8).map(d=>`<button class="dpill${d===reportDate?' active':''}" onclick="reportDate='${d}';renderReport()">
-        ${d===todayStr()?'Today':new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}
-      </button>`).join('')}
-    </div>
+  const dates=allDates(),tx=txnsForDate(reportDate);
+  const rev=tx.reduce((s,t)=>s+t.totalAmount,0),seatRev=tx.reduce((s,t)=>s+t.seatCharge,0),aoRev=tx.reduce((s,t)=>s+(t.addons?t.addons.reduce((a,i)=>a+i.price*i.qty,0):0),0);
+  let html=`<div class="rpt"><div class="sec-lbl">Select date</div><div class="date-pills">${dates.slice(0,8).map(d=>`<button class="dpill${d===reportDate?' active':''}" onclick="reportDate='${d}';renderReport()">${d===todayStr()?'Today':new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</button>`).join('')}</div>
     <div class="rpt-stats">
       <div class="rstat"><div class="rstat-v">${inr(rev)}</div><div class="rstat-l">Total Revenue</div></div>
       <div class="rstat"><div class="rstat-v">${tx.length}</div><div class="rstat-l">Sessions</div></div>
       <div class="rstat"><div class="rstat-v">${inr(seatRev)}</div><div class="rstat-l">Seat Revenue</div></div>
       <div class="rstat"><div class="rstat-v">${inr(aoRev)}</div><div class="rstat-l">Food Revenue</div></div>
     </div>
-    <div class="exp-btns">
-      <button class="exp-btn" onclick="exportCSV('${reportDate}')">📊 Export CSV</button>
-      <button class="exp-btn" onclick="exportPDF('${reportDate}')">📄 Export PDF</button>
-    </div>`;
+    <div class="exp-btns"><button class="exp-btn" onclick="exportCSV('${reportDate}')">📊 Export CSV</button><button class="exp-btn" onclick="exportPDF('${reportDate}')">📄 Export PDF</button></div>`;
   if(tx.length>0){
     html+=`<div class="sec-lbl">Payment breakdown</div><div class="pay-bkdn">`;
-    ['cash','upi','card'].forEach(m=>{
-      const mt=tx.filter(t=>t.method===m);if(!mt.length)return;
-      html+=`<div class="pbrow">
-        <span style="font-weight:600;font-size:12px;text-transform:uppercase">${m}</span>
-        <span style="color:#aaa;font-size:11px">${mt.length} session${mt.length>1?'s':''}</span>
-        <span style="font-family:monospace;font-weight:600;font-size:12px">${inr(mt.reduce((s,t)=>s+t.totalAmount,0))}</span>
-      </div>`;
-    });
+    ['cash','upi','card'].forEach(m=>{const mt=tx.filter(t=>t.method===m);if(!mt.length)return;html+=`<div class="pbrow"><span style="font-weight:600;font-size:12px;text-transform:uppercase">${m}</span><span style="color:#aaa;font-size:11px">${mt.length} session${mt.length>1?'s':''}</span><span style="font-family:monospace;font-weight:600;font-size:12px">${inr(mt.reduce((s,t)=>s+t.totalAmount,0))}</span></div>`;});
     html+=`</div><div class="sec-lbl">Transactions</div>`;
-    tx.forEach(t=>{
-      const sl=t.seatIds.map(id=>'#'+String(id).padStart(2,'00')).join(', ');
-      const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
-      html+=`<div class="tx-item">
-        <div style="flex:1;min-width:0">
-          <div class="tx-seat">Seats ${sl} · ${t.persons}p · ${fmtMins(t.t1-t.t0)}</div>
-          <div class="tx-name">${t.name}</div>
-          <div class="tx-time">${new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} → ${new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
-          ${ao>0?`<div class="tx-time">Food: ${inr(ao)}</div>`:''}
-          ${t.phone?`<div class="tx-time">📱 ${t.phone} <button onclick="sendWhatsApp(${t.id})" style="border:1px solid #25D366;background:transparent;color:#25D366;border-radius:4px;font-size:10px;cursor:pointer;padding:1px 6px;margin-left:4px">WhatsApp</button></div>`:''}
-        </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:10px">
-          <div class="tx-amt">${inr(t.totalAmount)}</div>
-          <span class="tag ${t.method}">${t.method.toUpperCase()}</span>
-          <button class="tx-print" onclick="printR(${t.id})">🖨️ Reprint</button>
-        </div>
-      </div>`;
-    });
-  } else {
-    html+=`<div class="empty">No transactions on this date.</div>`;
-  }
-  html+='</div>';
-  document.getElementById('content').innerHTML=html;
+    tx.forEach(t=>{const sl=t.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;html+=`<div class="tx-item"><div style="flex:1;min-width:0"><div class="tx-seat">Seats ${sl} · ${t.persons}p · ${fmtMins(t.t1-t.t0)}</div><div class="tx-name">${t.name}</div><div class="tx-time">${new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} → ${new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>${ao>0?`<div class="tx-time">Food: ${inr(ao)}</div>`:''}${t.phone?`<div class="tx-time">📱 ${t.phone} <button onclick="sendWhatsApp(${t.id})" style="border:1px solid #25D366;background:transparent;color:#25D366;border-radius:4px;font-size:10px;cursor:pointer;padding:1px 6px;margin-left:4px">WhatsApp</button></div>`:''}</div><div style="text-align:right;flex-shrink:0;margin-left:10px"><div class="tx-amt">${inr(t.totalAmount)}</div><span class="tag ${t.method}">${t.method.toUpperCase()}</span><button class="tx-print" onclick="printR(${t.id})">🖨️ Reprint</button></div></div>`;});
+  }else{html+=`<div class="empty">No transactions on this date.</div>`;}
+  html+='</div>';document.getElementById('content').innerHTML=html;
 }
 
-// ═══ EXPORT ═══
-function exportCSV(date){
-  const tx=txnsForDate(date);
-  const rows=[
-    ['Date','Customer','Phone','Persons','Seats','Check-in','Check-out','Duration(min)','Seat Charge','Food','Total','Payment'],
-    ...tx.map(t=>{
-      const sl=t.seatIds.join(' ');
-      const dur=Math.floor((t.t1-t.t0)/60000);
-      const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
-      return [t.date,`"${t.name}"`,t.phone||'',t.persons,`"${sl}"`,
-        new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
-        new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
-        dur,Math.round(t.seatCharge),Math.round(ao),Math.round(t.totalAmount),t.method];
-    })
-  ];
-  const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=`${settings.cafeName.replace(/ /g,'-')}-${date.replace(/ /g,'-')}.csv`;
-  a.click();URL.revokeObjectURL(url);
-}
-function exportPDF(date){
-  const tx=txnsForDate(date);
-  const rev=tx.reduce((s,t)=>s+t.totalAmount,0);
-  const seatRev=tx.reduce((s,t)=>s+t.seatCharge,0);
-  const aoRev=tx.reduce((s,t)=>s+(t.addons?t.addons.reduce((a,i)=>a+i.price*i.qty,0):0),0);
-  const guests=tx.reduce((s,t)=>s+t.persons,0);
-  const rows=tx.map(t=>{
-    const sl=t.seatIds.map(id=>'#'+String(id).padStart(2,'00')).join(', ');
-    const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
-    return `<tr>
-      <td>${new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}–${new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td>
-      <td>${t.name}</td><td>${t.phone||'—'}</td><td style="text-align:center">${t.persons}</td>
-      <td>${fmtMins(t.t1-t.t0)}</td>
-      <td style="text-align:right">Rs.${Math.round(t.seatCharge).toLocaleString('en-IN')}</td>
-      <td style="text-align:right">${ao?'Rs.'+Math.round(ao).toLocaleString('en-IN'):'—'}</td>
-      <td style="text-align:right"><strong>Rs.${Math.round(t.totalAmount).toLocaleString('en-IN')}</strong></td>
-      <td>${t.method.toUpperCase()}</td>
-    </tr>`;
-  }).join('');
-  const w=window.open('','_blank','width=900,height=700');
-  w.document.write(`<html><head><title>Report</title>
-  <style>body{font-family:sans-serif;font-size:13px;padding:28px;max-width:1000px;margin:auto}
-  h1{font-size:20px;margin:0 0 3px}h2{font-size:13px;color:#888;font-weight:normal;margin:0 0 18px}
-  .stats{display:flex;gap:12px;margin-bottom:22px}
-  .stat{border:1px solid #ddd;border-radius:8px;padding:11px 16px;text-align:center;flex:1}
-  .sv{font-size:17px;font-weight:700}.sl{font-size:11px;color:#888;margin-top:2px}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  th{background:#f5f5f5;padding:7px 8px;text-align:left;border-bottom:2px solid #ddd;font-size:10px;text-transform:uppercase}
-  td{padding:6px 8px;border-bottom:1px solid #eee}
-  tfoot td{background:#f9f9f9;font-weight:700;border-top:2px solid #ddd}
-  .prnbtn{margin-top:20px;padding:10px 22px;background:#BA7517;color:#fff;border:none;border-radius:7px;cursor:pointer}
-  @media print{.prnbtn{display:none}}</style></head>
-  <body>
-  <h1>${settings.cafeName}</h1>
-  <h2>Daily Report — ${new Date(date).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h2>
-  <div class="stats">
-    <div class="stat"><div class="sv">Rs.${Math.round(rev).toLocaleString('en-IN')}</div><div class="sl">Total</div></div>
-    <div class="stat"><div class="sv">${tx.length}</div><div class="sl">Sessions</div></div>
-    <div class="stat"><div class="sv">${guests}</div><div class="sl">Guests</div></div>
-    <div class="stat"><div class="sv">Rs.${Math.round(seatRev).toLocaleString('en-IN')}</div><div class="sl">Seat Rev</div></div>
-    <div class="stat"><div class="sv">Rs.${Math.round(aoRev).toLocaleString('en-IN')}</div><div class="sl">Food Rev</div></div>
-  </div>
-  <table>
-    <thead><tr><th>Time</th><th>Customer</th><th>Phone</th><th>Persons</th><th>Duration</th><th>Seat</th><th>Food</th><th>Total</th><th>Payment</th></tr></thead>
-    <tbody>${rows}</tbody>
-    <tfoot><tr><td colspan="5">TOTAL (${tx.length} sessions)</td>
-      <td style="text-align:right">Rs.${Math.round(seatRev).toLocaleString('en-IN')}</td>
-      <td style="text-align:right">Rs.${Math.round(aoRev).toLocaleString('en-IN')}</td>
-      <td style="text-align:right">Rs.${Math.round(rev).toLocaleString('en-IN')}</td>
-      <td></td></tr></tfoot>
-  </table>
-  <button class="prnbtn" onclick="window.print()">🖨️ Print / Save PDF</button>
-  </body></html>`);
-  w.document.close();
-}
+function exportCSV(date){const tx=txnsForDate(date);const rows=[['Date','Customer','Phone','Persons','Seats','Check-in','Check-out','Duration(min)','Seat Charge','Food','Total','Payment'],...tx.map(t=>{const sl=t.seatIds.join(' ');const dur=Math.floor((t.t1-t.t0)/60000);const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;return[t.date,`"${t.name}"`,t.phone||'',t.persons,`"${sl}"`,new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),dur,Math.round(t.seatCharge),Math.round(ao),Math.round(t.totalAmount),t.method];})];const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${settings.cafeName.replace(/ /g,'-')}-${date.replace(/ /g,'-')}.csv`;a.click();URL.revokeObjectURL(url);}
+function exportAllCSV(){const rows=[['Date','Customer','Phone','Persons','Seats','Check-in','Check-out','Duration(min)','Seat Charge','Food','Total','Payment'],...txns.map(t=>{const sl=t.seatIds.join(' ');const dur=Math.floor((t.t1-t.t0)/60000);const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;return[t.date,`"${t.name}"`,t.phone||'',t.persons,`"${sl}"`,new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),dur,Math.round(t.seatCharge),Math.round(ao),Math.round(t.totalAmount),t.method];})];const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${settings.cafeName.replace(/ /g,'-')}-all.csv`;a.click();URL.revokeObjectURL(url);}
+function exportPDF(date){const tx=txnsForDate(date);const rev=tx.reduce((s,t)=>s+t.totalAmount,0),seatRev=tx.reduce((s,t)=>s+t.seatCharge,0),aoRev=tx.reduce((s,t)=>s+(t.addons?t.addons.reduce((a,i)=>a+i.price*i.qty,0):0),0),guests=tx.reduce((s,t)=>s+t.persons,0);const rows=tx.map(t=>{const sl=t.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;return`<tr><td>${new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}–${new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td><td>${t.name}</td><td>${t.phone||'—'}</td><td style="text-align:center">${t.persons}</td><td>${fmtMins(t.t1-t.t0)}</td><td style="text-align:right">Rs.${Math.round(t.seatCharge).toLocaleString('en-IN')}</td><td style="text-align:right">${ao?'Rs.'+Math.round(ao).toLocaleString('en-IN'):'—'}</td><td style="text-align:right"><strong>Rs.${Math.round(t.totalAmount).toLocaleString('en-IN')}</strong></td><td>${t.method.toUpperCase()}</td></tr>`;}).join('');const w=window.open('','_blank','width=900,height=700');w.document.write(`<html><head><title>Report</title><style>body{font-family:sans-serif;font-size:13px;padding:28px;max-width:1000px;margin:auto}h1{font-size:20px;margin:0 0 3px}h2{font-size:13px;color:#888;font-weight:normal;margin:0 0 18px}.stats{display:flex;gap:12px;margin-bottom:22px}.stat{border:1px solid #ddd;border-radius:8px;padding:11px 16px;text-align:center;flex:1}.sv{font-size:17px;font-weight:700}.sl{font-size:11px;color:#888;margin-top:2px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f5f5f5;padding:7px 8px;text-align:left;border-bottom:2px solid #ddd;font-size:10px;text-transform:uppercase}td{padding:6px 8px;border-bottom:1px solid #eee}tfoot td{background:#f9f9f9;font-weight:700;border-top:2px solid #ddd}.prnbtn{margin-top:20px;padding:10px 22px;background:#BA7517;color:#fff;border:none;border-radius:7px;cursor:pointer}@media print{.prnbtn{display:none}}</style></head><body><h1>${settings.cafeName}</h1><h2>Daily Report — ${new Date(date).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h2><div class="stats"><div class="stat"><div class="sv">Rs.${Math.round(rev).toLocaleString('en-IN')}</div><div class="sl">Total</div></div><div class="stat"><div class="sv">${tx.length}</div><div class="sl">Sessions</div></div><div class="stat"><div class="sv">${guests}</div><div class="sl">Guests</div></div><div class="stat"><div class="sv">Rs.${Math.round(seatRev).toLocaleString('en-IN')}</div><div class="sl">Seat Rev</div></div><div class="stat"><div class="sv">Rs.${Math.round(aoRev).toLocaleString('en-IN')}</div><div class="sl">Food Rev</div></div></div><table><thead><tr><th>Time</th><th>Customer</th><th>Phone</th><th>Persons</th><th>Duration</th><th>Seat</th><th>Food</th><th>Total</th><th>Payment</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="5">TOTAL (${tx.length} sessions)</td><td style="text-align:right">Rs.${Math.round(seatRev).toLocaleString('en-IN')}</td><td style="text-align:right">Rs.${Math.round(aoRev).toLocaleString('en-IN')}</td><td style="text-align:right">Rs.${Math.round(rev).toLocaleString('en-IN')}</td><td></td></tr></tfoot></table><button class="prnbtn" onclick="window.print()">🖨️ Print / Save PDF</button></body></html>`);w.document.close();}
 
-// ═══ SETTINGS ═══
 function renderSettings(){
-  document.getElementById('content').innerHTML=`
-    <div class="settings-wrap">
-      <div class="sec-box">
-        <div class="sec-title">Café Details</div>
-        <div class="fgrp"><label class="flabel">Café name</label><input id="s-name" value="${settings.cafeName}"></div>
-        <div class="fgrp"><label class="flabel">Address (on receipt)</label><input id="s-addr" value="${settings.address}" placeholder="Coimbatore..."></div>
-        <div class="fgrp" style="margin-bottom:0"><label class="flabel">Rate per hour per seat (₹)</label><input id="s-rate" type="number" value="${settings.ratePerHour}" min="1"></div>
-      </div>
-      <div class="sec-box">
-        <div class="sec-title">🔐 Security</div>
-        <div class="fgrp"><label class="flabel">Manager PIN</label>
-          <input id="s-pin" type="password" value="${settings.pin||''}" placeholder="Enter PIN" maxlength="8">
-        </div>
-        <div class="fgrp" style="margin-bottom:0"><label class="flabel">Large bill threshold (₹)</label>
-          <input id="s-threshold" type="number" value="${settings.largeBillThreshold||500}" min="0">
-        </div>
-        <div class="hint-box" style="margin-top:10px;margin-bottom:0">Default PIN: <strong>1234</strong></div>
-      </div>
-      <button class="btn-pri" style="margin-top:0" onclick="saveSettings()">Save All Settings</button>
-      <div class="sec-box" style="margin-top:14px">
-        <div class="sec-title">Data</div>
-        <button class="btn-sec" style="margin-top:0;border-color:#185FA5;color:#185FA5" onclick="exportAllCSV()">📊 Export All Transactions</button>
-        <button class="btn-sec" style="margin-top:8px;border-color:#C0392B;color:#C0392B" onclick="requirePIN('Clear All Data',confirmClearData)">⚠ Clear All Data</button>
-      </div>
-      <div class="hint-box" style="margin-top:12px">
-        <strong>The Playhouse Billing v2.0</strong><br>
-        Firebase cloud · Auto customer ID · WhatsApp bills<br>
-        Total transactions: <strong>${txns.length}</strong>
-      </div>
+  document.getElementById('content').innerHTML=`<div class="settings-wrap">
+    <div class="sec-box"><div class="sec-title">Café Details</div>
+      <div class="fgrp"><label class="flabel">Café name</label><input id="s-name" value="${settings.cafeName}"></div>
+      <div class="fgrp"><label class="flabel">Address (on receipt)</label><input id="s-addr" value="${settings.address}" placeholder="Coimbatore..."></div>
+      <div class="fgrp" style="margin-bottom:0"><label class="flabel">Rate per hour per seat (₹)</label><input id="s-rate" type="number" value="${settings.ratePerHour}" min="1"></div>
     </div>
-  `;
+    <div class="sec-box"><div class="sec-title">🔐 Security</div>
+      <div class="fgrp"><label class="flabel">Manager PIN</label><input id="s-pin" type="password" value="${settings.pin||''}" placeholder="Enter PIN" maxlength="8"></div>
+      <div class="fgrp" style="margin-bottom:0"><label class="flabel">Large bill threshold (₹)</label><input id="s-threshold" type="number" value="${settings.largeBillThreshold||500}" min="0"></div>
+      <div class="hint-box" style="margin-top:10px;margin-bottom:0">Default PIN: <strong>1234</strong></div>
+    </div>
+    <button class="btn-pri" style="margin-top:0" onclick="saveSettings()">Save All Settings</button>
+    <div class="sec-box" style="margin-top:14px"><div class="sec-title">Data</div>
+      <button class="btn-sec" style="margin-top:0;border-color:#185FA5;color:#185FA5" onclick="exportAllCSV()">📊 Export All Transactions</button>
+      <button class="btn-sec" style="margin-top:8px;border-color:#C0392B;color:#C0392B" onclick="requirePIN('Clear All Data',confirmClearData)">⚠ Clear All Data</button>
+    </div>
+    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.1</strong><br>Firebase · Auto ID · WhatsApp · Time-based Reset<br>Total transactions: <strong>${txns.length}</strong></div>
+  </div>`;
 }
-function saveSettings(){
-  settings.cafeName=document.getElementById('s-name').value.trim()||'The Playhouse';
-  settings.address=document.getElementById('s-addr').value.trim();
-  settings.ratePerHour=parseFloat(document.getElementById('s-rate').value)||99;
-  settings.pin=document.getElementById('s-pin').value;
-  settings.largeBillThreshold=parseFloat(document.getElementById('s-threshold').value)||500;
-  saveAll();renderStats();
-  const btn=event.target;btn.textContent='✓ Saved!';btn.style.background='#27AE60';
-  setTimeout(()=>{btn.textContent='Save All Settings';btn.style.background='';},1800);
-}
-function exportAllCSV(){
-  const rows=[
-    ['Date','Customer','Phone','Persons','Seats','Check-in','Check-out','Duration(min)','Seat Charge','Food','Total','Payment'],
-    ...txns.map(t=>{
-      const sl=t.seatIds.join(' ');
-      const dur=Math.floor((t.t1-t.t0)/60000);
-      const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
-      return [t.date,`"${t.name}"`,t.phone||'',t.persons,`"${sl}"`,
-        new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
-        new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
-        dur,Math.round(t.seatCharge),Math.round(ao),Math.round(t.totalAmount),t.method];
-    })
-  ];
-  const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=`${settings.cafeName.replace(/ /g,'-')}-all.csv`;
-  a.click();URL.revokeObjectURL(url);
-}
-function confirmClearData(){
-  showModal(`
-    <h3>⚠ Clear All Data?</h3>
-    <div class="warn-box">Permanently deletes ALL ${txns.length} transactions. Cannot be undone.</div>
-    <button class="btn-sec" style="border-color:#185FA5;color:#185FA5;margin-top:0" onclick="exportAllCSV()">📊 Export First</button>
-    <button class="btn-pri red" onclick="doClearData()">Delete Everything</button>
-    <button class="btn-sec" onclick="closeModal()">Cancel</button>
-  `);
-}
-function doClearData(){
-  seats=mkSeats();txns=[];groupColorMap={};gcIdx=0;coInfo=null;cartItems={};customerCounter=1;
-  saveAll();renderStats();closeModal();
-  if(currentView==='settings')renderSettings();
-  else renderFloor();
-}
+function saveSettings(){settings.cafeName=document.getElementById('s-name').value.trim()||'The Playhouse';settings.address=document.getElementById('s-addr').value.trim();settings.ratePerHour=parseFloat(document.getElementById('s-rate').value)||99;settings.pin=document.getElementById('s-pin').value;settings.largeBillThreshold=parseFloat(document.getElementById('s-threshold').value)||500;saveAll();renderStats();const btn=event.target;btn.textContent='✓ Saved!';btn.style.background='#27AE60';setTimeout(()=>{btn.textContent='Save All Settings';btn.style.background='';},1800);}
+function confirmClearData(){showModal(`<h3>⚠ Clear All Data?</h3><div class="warn-box">Permanently deletes ALL ${txns.length} transactions. Cannot be undone.</div><button class="btn-sec" style="border-color:#185FA5;color:#185FA5;margin-top:0" onclick="exportAllCSV()">📊 Export First</button><button class="btn-pri red" onclick="doClearData()">Delete Everything</button><button class="btn-sec" onclick="closeModal()">Cancel</button>`);}
+function doClearData(){seats=mkSeats();txns=[];groupColorMap={};gcIdx=0;coInfo=null;cartItems={};customerCounter=1;saveAll();renderStats();closeModal();if(currentView==='settings')renderSettings();else renderFloor();}
 
-// ═══ NAV ═══
-function setView(v){
-  if(v==='settings'){requirePIN('Access Settings',()=>doSetView('settings'));return;}
-  doSetView(v);
-}
-function doSetView(v){
-  currentView=v;
-  ['floor','menu','report','settings'].forEach(x=>document.getElementById('btn-'+x).classList.toggle('active',x===v));
-  if(v==='floor')renderFloor();
-  else if(v==='menu')renderMenu();
-  else if(v==='report')renderReport();
-  else if(v==='settings')renderSettings();
-}
+function setView(v){if(v==='settings'){requirePIN('Access Settings',()=>doSetView('settings'));return;}doSetView(v);}
+function doSetView(v){currentView=v;['floor','menu','report','settings'].forEach(x=>document.getElementById('btn-'+x).classList.toggle('active',x===v));if(v==='floor')renderFloor();else if(v==='menu')renderMenu();else if(v==='report')renderReport();else if(v==='settings')renderSettings();}
+function showModal(html){const ov=document.getElementById('overlay');ov.innerHTML=`<div class="mbox">${html}</div>`;ov.style.display='flex';}
+function closeModal(){document.getElementById('overlay').style.display='none';if(window._coIv){clearInterval(window._coIv);window._coIv=null;}_pinActive=false;}
 
-// ═══ MODAL ═══
-function showModal(html){
-  const ov=document.getElementById('overlay');
-  ov.innerHTML=`<div class="mbox">${html}</div>`;
-  ov.style.display='flex';
-}
-function closeModal(){
-  document.getElementById('overlay').style.display='none';
-  if(window._coIv){clearInterval(window._coIv);window._coIv=null;}
-  _pinActive=false;
-}
-
-// ═══ INIT ═══
 setInterval(()=>{tickUpdate();if(currentView==='report')renderReport();},1000);
 setTimeout(()=>{checkExportBanner();},1500);
 
-async function startApp(){
-  await loadAll();
-  renderStats();
-  renderFloor();
-  checkExportBanner();
-}
+async function startApp(){await loadAll();renderStats();renderFloor();checkExportBanner();}
 startApp();
 </script>
 </body>
