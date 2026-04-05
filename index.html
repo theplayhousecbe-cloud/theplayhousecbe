@@ -200,9 +200,12 @@ function fmtMins(ms){const m=Math.floor(ms/60000);return(Math.floor(m/60)>0?Math
 function inr(n){return '₹'+Math.round(n).toLocaleString('en-IN');}
 function todayStr(){return new Date().toDateString();}
 function yesterday(){const d=new Date();d.setDate(d.getDate()-1);return d.toDateString();}
+function todayISO(){return new Date().toISOString().slice(0,10);}
+function fmtDate(iso){if(!iso)return '—';const d=new Date(iso);return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}
 function allDates(){const dates=[...new Set(txns.map(t=>t.date))].sort((a,b)=>new Date(b)-new Date(a));if(!dates.includes(todayStr()))dates.unshift(todayStr());return dates;}
 function txnsForDate(d){return txns.filter(t=>t.date===d);}
 
+// ═══ PIN ═══
 function requirePIN(title,callback){
   if(!settings.pin){callback();return;}
   _pinCallback=callback;_pinValue='';_pinActive=true;showModal(pinModalHTML(title,''));
@@ -228,6 +231,7 @@ function pinCancel(){_pinCallback=null;_pinActive=false;_pinValue='';closeModal(
 
 window.addEventListener('beforeunload',function(e){const active=seats.filter(s=>s.occupied).length;if(active>0){e.preventDefault();e.returnValue=`${active} seat(s) still active!`;return e.returnValue;}});
 
+// ═══ HEADER ═══
 function renderStats(){
   const occ=seats.filter(s=>s.occupied).length,blk=seats.filter(s=>s.blocked).length,rev=txnsForDate(todayStr()).reduce((s,t)=>s+t.totalAmount,0);
   document.getElementById('hdr-cafe-name').textContent='🎲 '+settings.cafeName;
@@ -237,6 +241,7 @@ function renderStats(){
     ${blk?`<div class="hs"><div class="hs-v" style="color:#185FA5">${blk}</div><div class="hs-l">Reserved</div></div>`:''}`;
 }
 
+// ═══ EXPORT BANNER ═══
 function checkExportBanner(){
   const yd=yesterday(),ytx=txnsForDate(yd),banner=document.getElementById('export-banner');
   if(!banner)return;
@@ -250,13 +255,8 @@ function markExported(date){settings.lastExportDate=date;saveAll();checkExportBa
 
 setInterval(()=>{const today=todayStr();if(today!==_lastDateStr){const prev=_lastDateStr;_lastDateStr=today;const ptx=txnsForDate(prev);if(ptx.length>0&&settings.lastExportDate!==prev){const rev=ptx.reduce((s,t)=>s+t.totalAmount,0);showModal(`<div style="text-align:center;margin-bottom:14px"><div style="font-size:32px;margin-bottom:8px">🌙</div><h3>New day — export yesterday?</h3></div><div class="hint-box">${ptx.length} sessions · ${inr(rev)} revenue</div><button class="btn-pri" onclick="exportCSV('${prev}');markExported('${prev}');closeModal()">📊 Export CSV</button><button class="btn-pri grn" onclick="exportPDF('${prev}');markExported('${prev}');closeModal()">📄 Export PDF</button><button class="btn-sec" onclick="markExported('${prev}');closeModal()">Skip</button>`);}}},60000);
 
-// ══════════════════════════════════════════
-// ═══ RESET BUTTON ═══
-// ══════════════════════════════════════════
-function openReset(){
-  requirePIN('Reset Data', showResetModal);
-}
-
+// ═══ RESET ═══
+function openReset(){requirePIN('Reset Data',showResetModal);}
 function showResetModal(){
   showModal(`
     <h3 style="color:#C0392B">🗑 Reset Transactions</h3>
@@ -265,15 +265,9 @@ function showResetModal(){
       Example: 1 day + 6 hours = deletes last 30 hours of transactions.
     </p>
     <div class="reset-inputs">
-      <div class="reset-field">
-        <label>Days</label>
-        <input type="number" id="reset-days" min="0" max="365" value="0" oninput="updateResetPreview()">
-      </div>
+      <div class="reset-field"><label>Days</label><input type="number" id="reset-days" min="0" max="365" value="0" oninput="updateResetPreview()"></div>
       <div style="display:flex;align-items:center;padding-top:22px;color:#bbb;font-size:24px">+</div>
-      <div class="reset-field">
-        <label>Hours</label>
-        <input type="number" id="reset-hours" min="0" max="23" value="0" oninput="updateResetPreview()">
-      </div>
+      <div class="reset-field"><label>Hours</label><input type="number" id="reset-hours" min="0" max="23" value="0" oninput="updateResetPreview()"></div>
     </div>
     <div class="reset-preview">
       <div class="reset-preview-count" id="reset-count">0</div>
@@ -286,89 +280,86 @@ function showResetModal(){
     <button class="btn-sec" onclick="closeModal()">Cancel</button>
   `);
 }
-
 function updateResetPreview(){
   const days=parseInt(document.getElementById('reset-days')?.value)||0;
   const hours=parseInt(document.getElementById('reset-hours')?.value)||0;
   const totalMs=(days*24+hours)*60*60*1000;
   const cutoff=Date.now()-totalMs;
   const toDelete=txns.filter(t=>t.t1>=cutoff);
-  const countEl=document.getElementById('reset-count');
-  const labelEl=document.getElementById('reset-label');
-  const rangeEl=document.getElementById('reset-range');
-  const btnEl=document.getElementById('reset-confirm-btn');
+  const countEl=document.getElementById('reset-count'),labelEl=document.getElementById('reset-label'),rangeEl=document.getElementById('reset-range'),btnEl=document.getElementById('reset-confirm-btn');
   if(countEl)countEl.textContent=toDelete.length;
-  if(labelEl){
-    if(days===0&&hours===0){labelEl.textContent='Enter days or hours above';}
-    else{
-      const timeStr=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');
-      labelEl.textContent=`transaction${toDelete.length!==1?'s':''} from the last ${timeStr} will be deleted`;
-    }
-  }
-  if(rangeEl&&totalMs>0){
-    const from=new Date(cutoff).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-    rangeEl.textContent=`From ${from} → Now`;
-  }else if(rangeEl){rangeEl.textContent='';}
-  if(btnEl){
-    const can=totalMs>0&&toDelete.length>0;
-    btnEl.disabled=!can;btnEl.style.opacity=can?'1':'0.4';btnEl.style.cursor=can?'pointer':'not-allowed';
-  }
+  if(labelEl){if(days===0&&hours===0){labelEl.textContent='Enter days or hours above';}else{const ts=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');labelEl.textContent=`transaction${toDelete.length!==1?'s':''} from the last ${ts} will be deleted`;}}
+  if(rangeEl&&totalMs>0){const from=new Date(cutoff).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});rangeEl.textContent=`From ${from} → Now`;}else if(rangeEl){rangeEl.textContent='';}
+  if(btnEl){const can=totalMs>0&&toDelete.length>0;btnEl.disabled=!can;btnEl.style.opacity=can?'1':'0.4';btnEl.style.cursor=can?'pointer':'not-allowed';}
 }
-
 function confirmReset(){
   const days=parseInt(document.getElementById('reset-days')?.value)||0;
   const hours=parseInt(document.getElementById('reset-hours')?.value)||0;
   const totalMs=(days*24+hours)*60*60*1000;
   const cutoff=Date.now()-totalMs;
   const toDelete=txns.filter(t=>t.t1>=cutoff);
-  if(toDelete.length===0){alert('No transactions in that time range.');return;}
-  const timeStr=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');
+  if(toDelete.length===0){alert('No transactions in that range.');return;}
+  const ts=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');
   showModal(`
     <h3 style="text-align:center;color:#C0392B">⚠ Final Confirmation</h3>
     <div style="text-align:center;margin:16px 0">
       <div style="font-family:monospace;font-size:48px;font-weight:700;color:#C0392B;line-height:1">${toDelete.length}</div>
       <div style="font-size:13px;color:#555;margin-top:8px">transaction${toDelete.length!==1?'s':''} will be permanently deleted</div>
-      <div style="font-size:11px;color:#aaa;margin-top:5px;background:#f7f7f7;border-radius:6px;padding:6px 10px;display:inline-block;margin-top:8px">Last ${timeStr}</div>
+      <div style="font-size:11px;color:#aaa;background:#f7f7f7;border-radius:6px;padding:6px 10px;display:inline-block;margin-top:8px">Last ${ts}</div>
     </div>
     <div class="warn-box" style="text-align:center">This <strong>cannot be undone.</strong></div>
     <button class="btn-pri red" style="margin-top:0" onclick="doReset(${cutoff})">Yes — Delete ${toDelete.length} Transaction${toDelete.length!==1?'s':''}</button>
     <button class="btn-sec" onclick="showResetModal()">← Go Back</button>
   `);
 }
-
 function doReset(cutoff){
-  const before=txns.length;
-  txns=txns.filter(t=>t.t1<cutoff);
-  const deleted=before-txns.length;
+  const before=txns.length;txns=txns.filter(t=>t.t1<cutoff);const deleted=before-txns.length;
   saveAll();closeModal();renderStats();
-  if(currentView==='report')renderReport();
-  else if(currentView==='floor')renderFloor();
-  showModal(`
-    <div style="text-align:center;padding:14px 0">
-      <div style="font-size:52px;margin-bottom:12px">✅</div>
-      <h3 style="font-size:17px">Reset Complete</h3>
-      <p style="font-size:13px;color:#888;margin-top:10px;line-height:1.7">
-        <span style="font-family:monospace;font-size:22px;font-weight:700;color:#C0392B;display:block">${deleted}</span>
-        transaction${deleted!==1?'s':''} deleted from Firebase.<br>
-        <strong>${txns.length}</strong> transaction${txns.length!==1?'s':''} remaining.
-      </p>
-    </div>
-    <button class="btn-pri grn" onclick="closeModal()">Done</button>
-  `);
+  if(currentView==='report')renderReport();else if(currentView==='floor')renderFloor();
+  showModal(`<div style="text-align:center;padding:14px 0"><div style="font-size:52px;margin-bottom:12px">✅</div><h3 style="font-size:17px">Reset Complete</h3><p style="font-size:13px;color:#888;margin-top:10px;line-height:1.7"><span style="font-family:monospace;font-size:22px;font-weight:700;color:#C0392B;display:block">${deleted}</span>transaction${deleted!==1?'s':''} deleted.<br><strong>${txns.length}</strong> remaining.</p></div><button class="btn-pri grn" onclick="closeModal()">Done</button>`);
 }
-// ══════════════════════════════════════════
 
+// ═══ FLOOR ═══
 function renderFloor(){
   let html=`<div class="legend"><span class="leg"><span class="ldot" style="background:#EAF3DE;border-color:#3B6D11"></span>Free</span><span class="leg"><span class="ldot" style="background:#FAEEDA;border-color:#BA7517"></span>Occupied</span><span class="leg"><span class="ldot" style="background:#E6F1FB;border-color:#185FA5"></span>Reserved</span></div><div class="seat-grid">`;
   seats.forEach(seat=>{
-    if(seat.blocked){const bi=seat.blockInfo||{};html+=`<div class="seat blk" onclick="openBlockedOptions(${seat.id})"><div class="sn">#${String(seat.id).padStart(2,'0')}</div><div class="s-lbl-blk">RSVD</div><div class="s-grp" style="color:#185FA5;font-size:9px">${(bi.name||'').substring(0,8)||'—'}</div>${bi.time?`<div class="s-grp" style="font-size:9px">${bi.time}</div>`:''}</div>`;}
-    else if(seat.occupied){const c=getGrpColor(seat.groupId);html+=`<div class="seat occ" onclick="openCheckout('${seat.groupId}')"><span class="grp-dot" style="background:${c}"></span><div class="sn">#${String(seat.id).padStart(2,'0')}</div><div class="s-tim" id="t${seat.id}">${fmtDur(seat.t0)}</div><div class="s-grp">${seat.name||'—'} · ${seat.groupSize}p</div></div>`;}
-    else{html+=`<div class="seat free" onclick="openFreeOptions(${seat.id})"><div class="sn">#${String(seat.id).padStart(2,'0')}</div><div class="s-lbl">free</div></div>`;}
+    if(seat.blocked){
+      const bi=seat.blockInfo||{};
+      html+=`<div class="seat blk" onclick="openBlockedOptions(${seat.id})">
+        <div class="sn">#${String(seat.id).padStart(2,'0')}</div>
+        <div class="s-lbl-blk">RSVD</div>
+        <div class="s-grp" style="color:#185FA5;font-size:9px">${(bi.name||'').substring(0,8)||'—'}</div>
+        ${bi.date?`<div class="s-grp" style="font-size:9px">${fmtDate(bi.date)}</div>`:''}
+        ${bi.time?`<div class="s-grp" style="font-size:9px">${bi.time}</div>`:''}
+      </div>`;
+    } else if(seat.occupied){
+      const c=getGrpColor(seat.groupId);
+      html+=`<div class="seat occ" onclick="openCheckout('${seat.groupId}')">
+        <span class="grp-dot" style="background:${c}"></span>
+        <div class="sn">#${String(seat.id).padStart(2,'0')}</div>
+        <div class="s-tim" id="t${seat.id}">${fmtDur(seat.t0)}</div>
+        <div class="s-grp">${seat.name||'—'} · ${seat.groupSize}p</div>
+      </div>`;
+    } else {
+      html+=`<div class="seat free" onclick="openFreeOptions(${seat.id})">
+        <div class="sn">#${String(seat.id).padStart(2,'0')}</div>
+        <div class="s-lbl">free</div>
+      </div>`;
+    }
   });
   html+='</div>';document.getElementById('content').innerHTML=html;
 }
 function tickUpdate(){if(currentView!=='floor')return;seats.forEach(s=>{if(s.occupied){const te=document.getElementById('t'+s.id);if(te)te.textContent=fmtDur(s.t0);}});renderStats();}
-function openFreeOptions(id){showModal(`<h3>Seat #${String(id).padStart(2,'0')}</h3><p style="font-size:12px;color:#888;margin:-8px 0 14px">What would you like to do?</p><button class="btn-pri" style="margin-top:0" onclick="closeModal();openCheckin(${id})">✓ Check In Guest</button><button class="btn-pri blue" onclick="closeModal();openBlockSeat(${id})">🔒 Reserve for Appointment</button><button class="btn-sec" onclick="closeModal()">Cancel</button>`);}
+
+function openFreeOptions(id){
+  showModal(`<h3>Seat #${String(id).padStart(2,'0')}</h3>
+    <p style="font-size:12px;color:#888;margin:-8px 0 14px">What would you like to do?</p>
+    <button class="btn-pri" style="margin-top:0" onclick="closeModal();openCheckin(${id})">✓ Check In Guest</button>
+    <button class="btn-pri blue" onclick="closeModal();openBlockSeat(${id})">🔒 Reserve for Appointment</button>
+    <button class="btn-sec" onclick="closeModal()">Cancel</button>`);
+}
+
+// ═══ CHECK-IN ═══
 function openCheckin(startId,prefillName=''){
   showModal(`<h3>Check in — seat #${String(startId).padStart(2,'0')}</h3>
     <div class="fgrp"><label class="flabel">Customer name (leave blank for auto ID)</label>
@@ -393,42 +384,75 @@ function doCheckin(startId){
   seats=seats.map(s=>toOcc.includes(s.id)?{...s,occupied:true,name,t0,groupId:gid,groupSize:persons}:s);
   saveAll();closeModal();if(currentView==='floor')renderFloor();
 }
+
+// ═══ BLOCK / RESERVE — NOW WITH DATE ═══
 function openBlockSeat(startId){
   showModal(`<h3>Reserve Seat #${String(startId).padStart(2,'0')}</h3>
     <div class="fgrp"><label class="flabel">Customer name</label><input id="blk-name" placeholder="Enter name..." autocomplete="off"></div>
+    <div class="fgrp"><label class="flabel">Appointment date</label><input id="blk-date" type="date" value="${todayISO()}"></div>
     <div class="fgrp"><label class="flabel">Appointment time</label><input id="blk-time" type="time" value="${new Date().toTimeString().slice(0,5)}"></div>
     <div class="fgrp"><label class="flabel">Note (optional)</label><input id="blk-note" placeholder="e.g. Birthday party..."></div>
-    <div class="fgrp"><label class="flabel">Number of seats</label><div class="counter"><button class="cbtn" onclick="chgBlk(-1)">−</button><span class="cval" id="blk-n">1</span><button class="cbtn" onclick="chgBlk(1)">+</button></div></div>
+    <div class="fgrp"><label class="flabel">Number of seats</label>
+      <div class="counter"><button class="cbtn" onclick="chgBlk(-1)">−</button><span class="cval" id="blk-n">1</span><button class="cbtn" onclick="chgBlk(1)">+</button></div>
+    </div>
     <button class="btn-pri blue" onclick="doBlockSeat(${startId})">Reserve Seats</button>
     <button class="btn-sec" onclick="closeModal()">Cancel</button>`);
 }
 function chgBlk(d){const el=document.getElementById('blk-n');el.textContent=Math.max(1,parseInt(el.textContent)+d);}
 function doBlockSeat(startId){
-  const name=document.getElementById('blk-name').value.trim(),time=document.getElementById('blk-time').value,note=document.getElementById('blk-note').value.trim(),n=parseInt(document.getElementById('blk-n').textContent);
+  const name=document.getElementById('blk-name').value.trim();
+  const date=document.getElementById('blk-date').value;
+  const time=document.getElementById('blk-time').value;
+  const note=document.getElementById('blk-note').value.trim();
+  const n=parseInt(document.getElementById('blk-n').textContent);
   const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{const ai=a.id>=startId?a.id-startId:a.id+TOTAL_SEATS;const bi=b.id>=startId?b.id-startId:b.id+TOTAL_SEATS;return ai-bi;});
   if(free.length<n){alert(`Only ${free.length} free seats!`);return;}
   const toBlk=free.slice(0,n).map(s=>s.id);
-  seats=seats.map(s=>toBlk.includes(s.id)?{...s,blocked:true,blockInfo:{name,time,note}}:s);
+  seats=seats.map(s=>toBlk.includes(s.id)?{...s,blocked:true,blockInfo:{name,date,time,note}}:s);
   saveAll();closeModal();if(currentView==='floor')renderFloor();
 }
+
 function openBlockedOptions(id){
   const seat=seats.find(s=>s.id===id),bi=seat.blockInfo||{};
   showModal(`<h3>Reserved — Seat #${String(id).padStart(2,'0')}</h3>
     <div class="bill-box">
       <div class="brow"><span class="lbl">Name</span><span class="val" style="font-family:inherit">${bi.name||'—'}</span></div>
+      <div class="brow"><span class="lbl">Date</span><span class="val" style="font-family:inherit">${fmtDate(bi.date)}</span></div>
       <div class="brow"><span class="lbl">Time</span><span class="val">${bi.time||'—'}</span></div>
       ${bi.note?`<div class="brow"><span class="lbl">Note</span><span class="val" style="font-family:inherit;font-size:11px">${bi.note}</span></div>`:''}
     </div>
     <button class="btn-pri" style="margin-top:0" onclick="convertToCheckin(${id})">✓ Check In Now</button>
-    <button class="btn-sec" style="border-color:#BA7517;color:#BA7517" onclick="editBlockedSeat(${id})">✎ Edit</button>
+    <button class="btn-sec" style="border-color:#BA7517;color:#BA7517" onclick="editBlockedSeat(${id})">✎ Edit Reservation</button>
     <button class="btn-sec" style="border-color:#C0392B;color:#C0392B" onclick="requirePIN('Remove Reservation',()=>unblockSeat(${id}))">✕ Remove</button>
     <button class="btn-sec" onclick="closeModal()">Close</button>`);
 }
-function convertToCheckin(id){const seat=seats.find(s=>s.id===id),name=(seat.blockInfo||{}).name||'';seats=seats.map(s=>s.id===id?{...s,blocked:false,blockInfo:null}:s);saveAll();closeModal();openCheckin(id,name);}
-function editBlockedSeat(id){const bi=(seats.find(s=>s.id===id)||{}).blockInfo||{};closeModal();showModal(`<h3>Edit Reservation — #${String(id).padStart(2,'0')}</h3><div class="fgrp"><label class="flabel">Name</label><input id="eblk-name" value="${bi.name||''}"></div><div class="fgrp"><label class="flabel">Time</label><input id="eblk-time" type="time" value="${bi.time||''}"></div><div class="fgrp"><label class="flabel">Note</label><input id="eblk-note" value="${bi.note||''}"></div><button class="btn-pri" onclick="doEditBlock(${id})">Save</button><button class="btn-sec" onclick="openBlockedOptions(${id})">← Back</button>`);}
-function doEditBlock(id){const name=document.getElementById('eblk-name').value.trim(),time=document.getElementById('eblk-time').value,note=document.getElementById('eblk-note').value.trim();seats=seats.map(s=>s.id===id?{...s,blockInfo:{name,time,note}}:s);saveAll();closeModal();if(currentView==='floor')renderFloor();}
+function convertToCheckin(id){
+  const seat=seats.find(s=>s.id===id),name=(seat.blockInfo||{}).name||'';
+  seats=seats.map(s=>s.id===id?{...s,blocked:false,blockInfo:null}:s);
+  saveAll();closeModal();openCheckin(id,name);
+}
+function editBlockedSeat(id){
+  const bi=(seats.find(s=>s.id===id)||{}).blockInfo||{};
+  closeModal();
+  showModal(`<h3>Edit Reservation — #${String(id).padStart(2,'0')}</h3>
+    <div class="fgrp"><label class="flabel">Customer name</label><input id="eblk-name" value="${bi.name||''}"></div>
+    <div class="fgrp"><label class="flabel">Appointment date</label><input id="eblk-date" type="date" value="${bi.date||todayISO()}"></div>
+    <div class="fgrp"><label class="flabel">Appointment time</label><input id="eblk-time" type="time" value="${bi.time||''}"></div>
+    <div class="fgrp"><label class="flabel">Note</label><input id="eblk-note" value="${bi.note||''}"></div>
+    <button class="btn-pri" onclick="doEditBlock(${id})">Save Changes</button>
+    <button class="btn-sec" onclick="openBlockedOptions(${id})">← Back</button>`);
+}
+function doEditBlock(id){
+  const name=document.getElementById('eblk-name').value.trim();
+  const date=document.getElementById('eblk-date').value;
+  const time=document.getElementById('eblk-time').value;
+  const note=document.getElementById('eblk-note').value.trim();
+  seats=seats.map(s=>s.id===id?{...s,blockInfo:{name,date,time,note}}:s);
+  saveAll();closeModal();if(currentView==='floor')renderFloor();
+}
 function unblockSeat(id){seats=seats.map(s=>s.id===id?{...s,blocked:false,blockInfo:null}:s);saveAll();closeModal();if(currentView==='floor')renderFloor();}
 
+// ═══ CHECKOUT ═══
 function openCheckout(gid){
   selectedMethod='cash';const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;
   const s0=grp[0],persons=s0.groupSize;
@@ -485,6 +509,7 @@ function doEditSession(gid){const name=document.getElementById('es-name').value.
 function confirmCancelSession(gid){const grp=seats.filter(s=>s.groupId===gid),s0=grp[0];showModal(`<h3>Cancel Session?</h3><div class="warn-box">⚠ Frees all ${s0.groupSize} seat(s) with NO charge.</div><button class="btn-pri red" style="margin-top:0" onclick="doCancelSession('${gid}')">Yes, Cancel — No Charge</button><button class="btn-sec" onclick="openCheckout('${gid}')">No — Back to Checkout</button>`);}
 function doCancelSession(gid){seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0}:s);delete groupColorMap[gid];cartItems={};coInfo=null;saveAll();closeModal();if(currentView==='floor')renderFloor();}
 
+// ═══ RECEIPT ═══
 function showReceipt(tx){
   const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
   const aoHTML=tx.addons&&tx.addons.length?tx.addons.map(a=>`<div class="brow"><span class="lbl">${a.name} ×${a.qty}</span><span class="val">${inr(a.price*a.qty)}</span></div>`).join(''):'';
@@ -517,6 +542,7 @@ function printR(txId){
   w.document.close();
 }
 
+// ═══ MENU ═══
 function renderMenu(){
   const cats=[...new Set(menuItems.map(m=>m.category))];
   let html=`<div style="padding:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:14px;font-weight:600">Menu (${menuItems.length} items)</div><button class="btn-pri" style="width:auto;padding:7px 13px;margin-top:0;font-size:12px" onclick="openAddMenuItem()">+ Add Item</button></div>`;
@@ -530,6 +556,7 @@ function openEditMenuItem(id){const it=menuItems.find(m=>m.id===id);if(!it)retur
 function doEditMenuItem(id){const name=document.getElementById('mi-name').value.trim(),price=parseFloat(document.getElementById('mi-price').value),category=document.getElementById('mi-cat').value;if(!name||!price||price<=0){alert('Enter valid name and price.');return;}menuItems=menuItems.map(m=>m.id===id?{...m,name,price,category}:m);saveAll();closeModal();if(currentView==='menu')renderMenu();}
 function deleteMenuItem(id){if(!confirm('Delete this item?'))return;menuItems=menuItems.filter(m=>m.id!==id);saveAll();if(currentView==='menu')renderMenu();}
 
+// ═══ REPORT ═══
 function renderReport(){
   const dates=allDates(),tx=txnsForDate(reportDate);
   const rev=tx.reduce((s,t)=>s+t.totalAmount,0),seatRev=tx.reduce((s,t)=>s+t.seatCharge,0),aoRev=tx.reduce((s,t)=>s+(t.addons?t.addons.reduce((a,i)=>a+i.price*i.qty,0):0),0);
@@ -550,10 +577,12 @@ function renderReport(){
   html+='</div>';document.getElementById('content').innerHTML=html;
 }
 
+// ═══ EXPORT ═══
 function exportCSV(date){const tx=txnsForDate(date);const rows=[['Date','Customer','Phone','Persons','Seats','Check-in','Check-out','Duration(min)','Seat Charge','Food','Total','Payment'],...tx.map(t=>{const sl=t.seatIds.join(' ');const dur=Math.floor((t.t1-t.t0)/60000);const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;return[t.date,`"${t.name}"`,t.phone||'',t.persons,`"${sl}"`,new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),dur,Math.round(t.seatCharge),Math.round(ao),Math.round(t.totalAmount),t.method];})];const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${settings.cafeName.replace(/ /g,'-')}-${date.replace(/ /g,'-')}.csv`;a.click();URL.revokeObjectURL(url);}
 function exportAllCSV(){const rows=[['Date','Customer','Phone','Persons','Seats','Check-in','Check-out','Duration(min)','Seat Charge','Food','Total','Payment'],...txns.map(t=>{const sl=t.seatIds.join(' ');const dur=Math.floor((t.t1-t.t0)/60000);const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;return[t.date,`"${t.name}"`,t.phone||'',t.persons,`"${sl}"`,new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),dur,Math.round(t.seatCharge),Math.round(ao),Math.round(t.totalAmount),t.method];})];const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${settings.cafeName.replace(/ /g,'-')}-all.csv`;a.click();URL.revokeObjectURL(url);}
 function exportPDF(date){const tx=txnsForDate(date);const rev=tx.reduce((s,t)=>s+t.totalAmount,0),seatRev=tx.reduce((s,t)=>s+t.seatCharge,0),aoRev=tx.reduce((s,t)=>s+(t.addons?t.addons.reduce((a,i)=>a+i.price*i.qty,0):0),0),guests=tx.reduce((s,t)=>s+t.persons,0);const rows=tx.map(t=>{const sl=t.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;return`<tr><td>${new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}–${new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td><td>${t.name}</td><td>${t.phone||'—'}</td><td style="text-align:center">${t.persons}</td><td>${fmtMins(t.t1-t.t0)}</td><td style="text-align:right">Rs.${Math.round(t.seatCharge).toLocaleString('en-IN')}</td><td style="text-align:right">${ao?'Rs.'+Math.round(ao).toLocaleString('en-IN'):'—'}</td><td style="text-align:right"><strong>Rs.${Math.round(t.totalAmount).toLocaleString('en-IN')}</strong></td><td>${t.method.toUpperCase()}</td></tr>`;}).join('');const w=window.open('','_blank','width=900,height=700');w.document.write(`<html><head><title>Report</title><style>body{font-family:sans-serif;font-size:13px;padding:28px;max-width:1000px;margin:auto}h1{font-size:20px;margin:0 0 3px}h2{font-size:13px;color:#888;font-weight:normal;margin:0 0 18px}.stats{display:flex;gap:12px;margin-bottom:22px}.stat{border:1px solid #ddd;border-radius:8px;padding:11px 16px;text-align:center;flex:1}.sv{font-size:17px;font-weight:700}.sl{font-size:11px;color:#888;margin-top:2px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f5f5f5;padding:7px 8px;text-align:left;border-bottom:2px solid #ddd;font-size:10px;text-transform:uppercase}td{padding:6px 8px;border-bottom:1px solid #eee}tfoot td{background:#f9f9f9;font-weight:700;border-top:2px solid #ddd}.prnbtn{margin-top:20px;padding:10px 22px;background:#BA7517;color:#fff;border:none;border-radius:7px;cursor:pointer}@media print{.prnbtn{display:none}}</style></head><body><h1>${settings.cafeName}</h1><h2>Daily Report — ${new Date(date).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h2><div class="stats"><div class="stat"><div class="sv">Rs.${Math.round(rev).toLocaleString('en-IN')}</div><div class="sl">Total</div></div><div class="stat"><div class="sv">${tx.length}</div><div class="sl">Sessions</div></div><div class="stat"><div class="sv">${guests}</div><div class="sl">Guests</div></div><div class="stat"><div class="sv">Rs.${Math.round(seatRev).toLocaleString('en-IN')}</div><div class="sl">Seat Rev</div></div><div class="stat"><div class="sv">Rs.${Math.round(aoRev).toLocaleString('en-IN')}</div><div class="sl">Food Rev</div></div></div><table><thead><tr><th>Time</th><th>Customer</th><th>Phone</th><th>Persons</th><th>Duration</th><th>Seat</th><th>Food</th><th>Total</th><th>Payment</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="5">TOTAL (${tx.length} sessions)</td><td style="text-align:right">Rs.${Math.round(seatRev).toLocaleString('en-IN')}</td><td style="text-align:right">Rs.${Math.round(aoRev).toLocaleString('en-IN')}</td><td style="text-align:right">Rs.${Math.round(rev).toLocaleString('en-IN')}</td><td></td></tr></tfoot></table><button class="prnbtn" onclick="window.print()">🖨️ Print / Save PDF</button></body></html>`);w.document.close();}
 
+// ═══ SETTINGS ═══
 function renderSettings(){
   document.getElementById('content').innerHTML=`<div class="settings-wrap">
     <div class="sec-box"><div class="sec-title">Café Details</div>
@@ -571,13 +600,14 @@ function renderSettings(){
       <button class="btn-sec" style="margin-top:0;border-color:#185FA5;color:#185FA5" onclick="exportAllCSV()">📊 Export All Transactions</button>
       <button class="btn-sec" style="margin-top:8px;border-color:#C0392B;color:#C0392B" onclick="requirePIN('Clear All Data',confirmClearData)">⚠ Clear All Data</button>
     </div>
-    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.1</strong><br>Firebase · Auto ID · WhatsApp · Time-based Reset<br>Total transactions: <strong>${txns.length}</strong></div>
+    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.2</strong><br>Firebase · Auto ID · WhatsApp · Reset · Date on Reservations<br>Total transactions: <strong>${txns.length}</strong></div>
   </div>`;
 }
 function saveSettings(){settings.cafeName=document.getElementById('s-name').value.trim()||'The Playhouse';settings.address=document.getElementById('s-addr').value.trim();settings.ratePerHour=parseFloat(document.getElementById('s-rate').value)||99;settings.pin=document.getElementById('s-pin').value;settings.largeBillThreshold=parseFloat(document.getElementById('s-threshold').value)||500;saveAll();renderStats();const btn=event.target;btn.textContent='✓ Saved!';btn.style.background='#27AE60';setTimeout(()=>{btn.textContent='Save All Settings';btn.style.background='';},1800);}
 function confirmClearData(){showModal(`<h3>⚠ Clear All Data?</h3><div class="warn-box">Permanently deletes ALL ${txns.length} transactions. Cannot be undone.</div><button class="btn-sec" style="border-color:#185FA5;color:#185FA5;margin-top:0" onclick="exportAllCSV()">📊 Export First</button><button class="btn-pri red" onclick="doClearData()">Delete Everything</button><button class="btn-sec" onclick="closeModal()">Cancel</button>`);}
 function doClearData(){seats=mkSeats();txns=[];groupColorMap={};gcIdx=0;coInfo=null;cartItems={};customerCounter=1;saveAll();renderStats();closeModal();if(currentView==='settings')renderSettings();else renderFloor();}
 
+// ═══ NAV & MODAL ═══
 function setView(v){if(v==='settings'){requirePIN('Access Settings',()=>doSetView('settings'));return;}doSetView(v);}
 function doSetView(v){currentView=v;['floor','menu','report','settings'].forEach(x=>document.getElementById('btn-'+x).classList.toggle('active',x===v));if(v==='floor')renderFloor();else if(v==='menu')renderMenu();else if(v==='report')renderReport();else if(v==='settings')renderSettings();}
 function showModal(html){const ov=document.getElementById('overlay');ov.innerHTML=`<div class="mbox">${html}</div>`;ov.style.display='flex';}
