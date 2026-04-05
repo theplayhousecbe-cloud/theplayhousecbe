@@ -1,134 +1,1226 @@
-<!-- NOTE: This is your UPDATED core sections only (clean + working). Replace in your file accordingly -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Café Billing</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f4f4f4;color:#111;min-height:100vh}
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#fff;border-bottom:1px solid #ddd;flex-shrink:0;gap:6px;flex-wrap:wrap}
+.hdr-title{font-size:15px;font-weight:700;color:#333;white-space:nowrap}
+.hdr-stats{display:flex;gap:16px;flex:1;justify-content:center;flex-wrap:wrap}
+.hs{text-align:center}.hs-v{font-family:monospace;font-size:14px;font-weight:700;color:#111}.hs-l{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em}
+.nav{display:flex;gap:3px}
+.nbtn{padding:5px 11px;border-radius:7px;border:1px solid #ccc;background:transparent;cursor:pointer;font-size:12px;color:#666;font-family:inherit;white-space:nowrap}
+.nbtn.active{background:#BA7517;color:#fff;border-color:#BA7517}
+.content{flex:1;overflow-y:auto}
+.exp-banner{background:#FFF8EC;border-bottom:2px solid #FACF80;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.exp-banner-txt{font-size:12px;color:#7A4F00;font-weight:500}
+.exp-banner-btns{display:flex;gap:6px;flex-shrink:0}
+.exp-banner-btn{padding:4px 11px;border-radius:6px;border:1px solid #BA7517;background:transparent;color:#BA7517;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600}
+.exp-banner-btn.pri{background:#BA7517;color:#fff}
+.exp-banner-btn.dim{border-color:#ccc;color:#aaa}
+.legend{display:flex;gap:12px;padding:9px 13px 3px;font-size:11px;color:#666;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:4px}
+.ldot{width:10px;height:10px;border-radius:3px;border:1px solid;flex-shrink:0}
+.seat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:7px;padding:6px 13px 13px}
+.seat{border-radius:8px;padding:9px 5px;cursor:pointer;border:2px solid;text-align:center;transition:all .1s;user-select:none;position:relative}
+.seat:hover{transform:translateY(-1px);box-shadow:0 2px 7px rgba(0,0,0,.12)}
+.seat:active{transform:scale(.97)}
+.seat.free{background:#EAF3DE;border-color:#3B6D11}
+.seat.occ{background:#FAEEDA;border-color:#BA7517}
+.seat.blk{background:#E6F1FB;border-color:#185FA5}
+.sn{font-family:monospace;font-size:12px;font-weight:700}
+.seat.free .sn{color:#27500A}.seat.occ .sn{color:#633806}.seat.blk .sn{color:#0C447C}
+.s-lbl{font-size:10px;margin-top:2px;color:#3B6D11}
+.s-lbl-blk{font-size:9px;margin-top:2px;color:#185FA5;font-weight:700;letter-spacing:.05em}
+.s-tim{font-family:monospace;font-size:10px;margin-top:2px;color:#BA7517;font-weight:600}
+.s-grp{font-size:10px;margin-top:1px;color:#888}
+.grp-dot{width:7px;height:7px;border-radius:50%;position:absolute;top:4px;right:4px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding:16px;overflow-y:auto}
+.mbox{background:#fff;border-radius:14px;padding:22px;width:100%;max-width:370px;box-shadow:0 8px 32px rgba(0,0,0,.2);margin:auto;flex-shrink:0}
+.mbox h3{font-size:15px;font-weight:600;margin:0 0 16px;color:#111}
+.flabel{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;display:block}
+.fgrp{margin-bottom:12px}
+.fgrp input,.fgrp select{width:100%;padding:8px 10px;border-radius:7px;border:1px solid #ccc;background:#f9f9f9;color:#111;font-family:inherit;font-size:13px;outline:none}
+.fgrp input:focus,.fgrp select:focus{border-color:#BA7517;background:#fff}
+.pin-display{display:flex;justify-content:center;gap:10px;margin:10px 0 14px}
+.pin-dot{width:18px;height:18px;border-radius:50%;border:2px solid #ccc;background:transparent;transition:all .15s}
+.pin-dot.filled{background:#BA7517;border-color:#BA7517}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.pin-key{padding:14px 0;border-radius:9px;border:1px solid #e0e0e0;background:#fff;font-size:18px;font-weight:600;cursor:pointer;font-family:monospace;text-align:center;transition:all .1s}
+.pin-key:hover{background:#f5f5f5;border-color:#BA7517}
+.pin-key:active{background:#FAEEDA;transform:scale(.96)}
+.pin-key.del{font-size:14px;color:#888}
+.pin-key.ok{background:#BA7517;color:#fff;border-color:#BA7517}
+.pin-key.ok:hover{background:#9a6010}
+.counter{display:flex;align-items:center;gap:8px}
+.cbtn{width:34px;height:34px;border-radius:7px;border:1px solid #ccc;background:#f5f5f5;color:#333;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit}
+.cbtn:hover{border-color:#BA7517;color:#BA7517}
+.cval{font-family:monospace;font-size:20px;font-weight:700;min-width:28px;text-align:center;color:#111}
+.pay-row{display:flex;gap:6px}
+.pbtn{flex:1;padding:8px 0;border-radius:7px;border:1px solid #ccc;background:transparent;font-size:12px;cursor:pointer;color:#666;font-family:inherit;font-weight:500}
+.pbtn.sel{border-color:#BA7517;background:#FAEEDA;color:#633806;font-weight:700}
+.btn-pri{width:100%;padding:10px;background:#BA7517;border:none;border-radius:8px;color:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-top:7px}
+.btn-pri:hover{background:#9a6010}
+.btn-pri.red{background:#C0392B}.btn-pri.red:hover{background:#a93226}
+.btn-pri.blue{background:#185FA5}.btn-pri.blue:hover{background:#0f4a82}
+.btn-pri.grn{background:#27AE60}.btn-pri.grn:hover{background:#1e8449}
+.btn-sec{width:100%;padding:8px;background:transparent;border:1px solid #ddd;border-radius:8px;color:#888;font-family:inherit;font-size:12px;cursor:pointer;margin-top:6px}
+.btn-sec:hover{border-color:#999;color:#333}
+.bill-box{background:#f7f7f7;border-radius:8px;padding:12px;margin-bottom:12px}
+.brow{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;border-bottom:1px solid #eee}
+.brow:last-child{border-bottom:none}
+.brow .lbl{color:#888}.brow .val{font-family:monospace;color:#111;font-weight:500}
+.btotal{font-family:monospace;font-size:24px;font-weight:700;color:#BA7517;text-align:center;padding:5px 0}
+.hint-box{background:#FFF8EC;border:1px solid #FACF80;border-radius:7px;padding:7px 10px;font-size:11px;color:#7A4F00;margin-bottom:8px;line-height:1.6}
+.warn-box{background:#FEF2F2;border:1px solid #FCA5A5;border-radius:7px;padding:7px 10px;font-size:11px;color:#991B1B;margin-bottom:8px}
+.info-box{background:#E6F1FB;border:1px solid #7AADDE;border-radius:7px;padding:7px 10px;font-size:11px;color:#0C447C;margin-bottom:8px;line-height:1.6}
+.sec-box{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:14px;margin-bottom:12px}
+.sec-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.rpt{padding:14px}
+.rpt-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:12px}
+.rstat{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:10px;text-align:center}
+.rstat-v{font-family:monospace;font-size:15px;font-weight:700}.rstat-l{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.sec-lbl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:2px}
+.pay-bkdn{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:9px 12px;margin-bottom:12px}
+.pbrow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-bottom:1px solid #f0f0f0}
+.pbrow:last-child{border-bottom:none}
+.tx-item{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:9px 12px;display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px}
+.tx-seat{font-size:10px;color:#999}.tx-name{font-size:13px;font-weight:500;color:#111}.tx-time{font-size:10px;color:#999;margin-top:1px}
+.tx-amt{font-family:monospace;font-size:14px;font-weight:700;text-align:right}
+.tx-print{padding:3px 8px;border-radius:5px;border:1px solid #ddd;background:transparent;font-size:11px;cursor:pointer;color:#888;margin-top:4px;display:block;width:100%;font-family:inherit}
+.tx-print:hover{border-color:#BA7517;color:#BA7517}
+.tag{font-size:10px;padding:2px 6px;border-radius:20px;margin-top:3px;display:inline-block;font-weight:600;text-transform:uppercase}
+.tag.cash{background:#EAF3DE;color:#27500A}.tag.upi{background:#EEEDFE;color:#3C3489}.tag.card{background:#E6F1FB;color:#0C447C}
+.empty{text-align:center;color:#aaa;padding:40px;font-size:13px}
+.btn-row{display:flex;gap:7px;margin-top:7px}
+.menu-item-row{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:9px 11px;display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.mi-btn{padding:3px 9px;border-radius:5px;border:1px solid;font-size:11px;cursor:pointer;font-family:inherit;background:transparent}
+.add-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f3f3f3}
+.add-row:last-child{border-bottom:none}
+.date-pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.dpill{padding:4px 10px;border-radius:20px;border:1px solid #ddd;background:transparent;color:#666;font-size:11px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.dpill.active{border-color:#BA7517;background:#FAEEDA;color:#633806;font-weight:600}
+.exp-btns{display:flex;gap:7px;margin-bottom:12px}
+.exp-btn{flex:1;padding:8px;border:1px solid #ccc;border-radius:7px;background:transparent;font-size:12px;cursor:pointer;color:#555;font-family:inherit}
+.exp-btn:hover{border-color:#BA7517;color:#BA7517}
+.big-bill{text-align:center;padding:16px 0}
+.big-bill-amt{font-family:monospace;font-size:44px;font-weight:700;color:#BA7517;line-height:1}
+.big-bill-lbl{font-size:12px;color:#888;margin-top:6px}
+.settings-wrap{padding:14px;max-width:500px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="hdr-title" id="hdr-cafe-name">☕ Café</div>
+    <div class="hdr-stats" id="stats"></div>
+    <div class="nav">
+      <button class="nbtn active" onclick="setView('floor')" id="btn-floor">Floor</button>
+      <button class="nbtn" onclick="setView('menu')" id="btn-menu">Menu</button>
+      <button class="nbtn" onclick="setView('report')" id="btn-report">Report</button>
+	  <button class="nbtn" onclick="confirmReset()">⚠️ Reset Entire System</button>
+      <button class="nbtn" onclick="setView('settings')" id="btn-settings">⚙</button>
+    </div>
+  </div>
+  <div id="export-banner" style="display:none"></div>
+  <div class="content" id="content"></div>
+</div>
+<div class="overlay" id="overlay" style="display:none" onclick="if(event.target===this&&!_pinActive)closeModal()"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBaocyc92pXMmmNx_foVZvZSYX3L8NYuTU",
+  authDomain: "the-playhouse-cafe.firebaseapp.com",
+  projectId: "the-playhouse-cafe",
+  storageBucket: "the-playhouse-cafe.firebasestorage.app",
+  messagingSenderId: "321873657191",
+  appId: "1:321873657191:web:feababb0723ca3ef2a03c2",
+  measurementId: "G-FPWDKB8NDG"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+window.db = db;
 
-// ===== NEW GLOBALS =====
-let customerCounter = 1;
-const LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA"; // replace with full base64 if needed
+// ═══ CONSTANTS ═══
+const TOTAL_SEATS = 48;
+const GRP_COLORS = ['#E67E22','#2980B9','#27AE60','#8E44AD','#C0392B','#16A085','#D35400','#1ABC9C','#F39C12','#7F8C8D'];
+const MENU_CATS = ['Hot Drinks','Cold Drinks','Food','Snacks','Desserts','Other'];
+const DEFAULT_MENU = [
+  {id:'m01',name:'Filter Coffee',price:30,category:'Hot Drinks'},
+  {id:'m02',name:'Masala Chai',price:25,category:'Hot Drinks'},
+  {id:'m03',name:'Green Tea',price:20,category:'Hot Drinks'},
+  {id:'m04',name:'Cold Coffee',price:60,category:'Cold Drinks'},
+  {id:'m05',name:'Fresh Lime Soda',price:40,category:'Cold Drinks'},
+  {id:'m06',name:'Lassi',price:50,category:'Cold Drinks'},
+  {id:'m07',name:'Idli Sambar',price:60,category:'Food'},
+  {id:'m08',name:'Masala Dosa',price:80,category:'Food'},
+  {id:'m09',name:'Sandwich',price:70,category:'Food'},
+  {id:'m10',name:'Samosa',price:20,category:'Snacks'},
+  {id:'m11',name:'Vada',price:30,category:'Snacks'},
+  {id:'m12',name:'Banana Cake',price:40,category:'Desserts'},
+];
 
-// ===== UPDATED CHECK-IN =====
+// ═══ STATE ═══
+let settings = {cafeName:'The PlayHouse BoardGame Café', address:'', ratePerHour:99, pin:'1234', lastExportDate:'', largeBillThreshold:500};
+let seats = mkSeats();
+let txns = [];
+let menuItems = JSON.parse(JSON.stringify(DEFAULT_MENU));
+let groupColorMap = {}, gcIdx = 0;
+let currentView = 'floor';
+let selectedMethod = 'cash';
+let cartItems = {};
+let coInfo = null;
+let reportDate = todayStr();
+let _pinCallback = null;
+let _pinValue = '';
+let _pinActive = false;
+let _lastDateStr = todayStr();
+
+function mkSeats(){
+  return Array.from({length:TOTAL_SEATS},(_,i)=>({id:i+1,occupied:false,name:'',t0:null,groupId:null,groupSize:0,blocked:false,blockInfo:null}));
+}
+
+// ═══ FIREBASE STORAGE ═══
+async function saveAll(){
+  await db.collection("playhouse").doc("data").set({
+    settings,
+    seats,
+    txns,
+    menuItems
+  });
+}
+async function loadAll(){
+  const doc = await db.collection("playhouse").doc("data").get();
+  if(doc.exists){
+    const data = doc.data();
+    settings = data.settings || settings;
+    seats = data.seats || seats;
+    txns = data.txns || txns;
+    menuItems = data.menuItems || menuItems;
+  }
+}
+
+// ═══ HELPERS ═══
+function getGrpColor(gid){if(!groupColorMap[gid]){groupColorMap[gid]=GRP_COLORS[gcIdx%GRP_COLORS.length];gcIdx++;}return groupColorMap[gid];}
+function calcSeatCharge(t0,persons){
+  const mins=(Date.now()-t0)/60000, r=settings.ratePerHour;
+  return mins<=60?r*persons:Math.ceil((r+(r/60)*(mins-60))*persons);
+}
+function calcCartTotal(){return Object.entries(cartItems).reduce((s,[id,qty])=>{const it=menuItems.find(m=>m.id===id);return it?s+it.price*qty:s;},0);}
+function getCartAddons(){return Object.entries(cartItems).map(([id,qty])=>{const it=menuItems.find(m=>m.id===id);return it?{name:it.name,price:it.price,qty}:null;}).filter(Boolean);}
+function fmtDur(t0){const s=Math.floor((Date.now()-t0)/1000);return[Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(n=>String(n).padStart(2,'0')).join(':');}
+function fmtMins(ms){const m=Math.floor(ms/60000);return(Math.floor(m/60)>0?Math.floor(m/60)+'h ':'')+m%60+'m';}
+function inr(n){return '₹'+Math.round(n).toLocaleString('en-IN');}
+function todayStr(){return new Date().toDateString();}
+function yesterday(){const d=new Date();d.setDate(d.getDate()-1);return d.toDateString();}
+function allDates(){const dates=[...new Set(txns.map(t=>t.date))].sort((a,b)=>new Date(b)-new Date(a));if(!dates.includes(todayStr()))dates.unshift(todayStr());return dates;}
+function txnsForDate(d){return txns.filter(t=>t.date===d);}
+
+// ═══ PIN PROTECTION ═══
+function requirePIN(title, callback){
+  if(!settings.pin){callback();return;}
+  _pinCallback=callback; _pinValue=''; _pinActive=true;
+  showModal(pinModalHTML(title,''));
+}
+function pinModalHTML(title, err){
+  const dots=Array.from({length:4},(_,i)=>`<div class="pin-dot${i<_pinValue.length?' filled':''}"></div>`).join('');
+  return `
+    <h3 style="text-align:center">🔐 ${title}</h3>
+    <p style="font-size:12px;color:#888;text-align:center;margin:-8px 0 10px">Enter manager PIN</p>
+    <div class="pin-display">${dots}</div>
+    ${err?`<div style="text-align:center;color:#C0392B;font-size:12px;margin-bottom:8px">${err}</div>`:''}
+    <div class="pin-grid">
+      ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="pin-key" onclick="pinKey('${n}')">${n}</button>`).join('')}
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key ok" onclick="pinSubmit()">✓</button>
+    </div>
+    <button class="btn-sec" onclick="pinCancel()">Cancel</button>
+  `;
+}
+function pinKey(d){
+  if(_pinValue.length>=6)return;
+  _pinValue+=d;
+  const ov=document.getElementById('overlay');
+  const dots=ov.querySelectorAll('.pin-dot');
+  dots.forEach((dot,i)=>dot.classList.toggle('filled',i<_pinValue.length));
+  if(_pinValue.length>=4)setTimeout(pinSubmit,120);
+}
+function pinDel(){
+  _pinValue=_pinValue.slice(0,-1);
+  const dots=document.querySelectorAll('.pin-dot');
+  dots.forEach((dot,i)=>dot.classList.toggle('filled',i<_pinValue.length));
+}
+function pinSubmit(){
+  if(_pinValue===settings.pin){
+    const cb=_pinCallback; _pinCallback=null; _pinActive=false; _pinValue='';
+    closeModal(); cb();
+  } else {
+    _pinValue='';
+    const ov=document.getElementById('overlay');
+    if(ov) ov.querySelector('.mbox').innerHTML=pinModalHTML('Access Denied','Incorrect PIN — try again');
+  }
+}
+function pinCancel(){_pinCallback=null;_pinActive=false;_pinValue='';closeModal();}
+
+// ═══ BROWSER CLOSE WARNING ═══
+window.addEventListener('beforeunload',function(e){
+  const active=seats.filter(s=>s.occupied).length;
+  if(active>0){
+    e.preventDefault();
+    e.returnValue=`Warning: ${active} seat(s) are still active. Closing now will NOT lose data (it is saved), but sessions will keep running.`;
+    return e.returnValue;
+  }
+});
+
+// ═══ HEADER ═══
+function renderStats(){
+  const occ=seats.filter(s=>s.occupied).length;
+  const blk=seats.filter(s=>s.blocked).length;
+  const rev=txnsForDate(todayStr()).reduce((s,t)=>s+t.totalAmount,0);
+  document.getElementById('hdr-cafe-name').textContent='☕ '+settings.cafeName;
+  document.getElementById('stats').innerHTML=`
+    <div class="hs"><div class="hs-v">${occ}/${TOTAL_SEATS}</div><div class="hs-l">Occupied</div></div>
+    <div class="hs"><div class="hs-v">${inr(rev)}</div><div class="hs-l">Today</div></div>
+    ${blk?`<div class="hs"><div class="hs-v" style="color:#185FA5">${blk}</div><div class="hs-l">Reserved</div></div>`:''}
+  `;
+}
+
+// ═══ EXPORT BANNER ═══
+function checkExportBanner(){
+  const yd=yesterday();
+  const ytx=txnsForDate(yd);
+  const banner=document.getElementById('export-banner');
+  if(!banner)return;
+  if(ytx.length>0 && settings.lastExportDate!==yd){
+    const rev=ytx.reduce((s,t)=>s+t.totalAmount,0);
+    banner.style.display='flex';
+    banner.innerHTML=`
+      <div class="exp-banner">
+        <div class="exp-banner-txt">📊 Yesterday's data not backed up — ${ytx.length} sessions · ${inr(rev)}</div>
+        <div class="exp-banner-btns">
+          <button class="exp-banner-btn pri" onclick="exportCSV('${yd}');markExported('${yd}')">Export CSV</button>
+          <button class="exp-banner-btn" onclick="exportPDF('${yd}');markExported('${yd}')">PDF</button>
+          <button class="exp-banner-btn dim" onclick="markExported('${yd}')">Dismiss</button>
+        </div>
+      </div>`;
+  } else {
+    banner.style.display='none';
+  }
+}
+function markExported(date){
+  settings.lastExportDate=date;
+  saveAll();
+  checkExportBanner();
+}
+
+// ═══ MIDNIGHT DAY-CHANGE CHECK ═══
+setInterval(()=>{
+  const today=todayStr();
+  if(today!==_lastDateStr){
+    const prev=_lastDateStr; _lastDateStr=today;
+    const ptx=txnsForDate(prev);
+    if(ptx.length>0&&settings.lastExportDate!==prev){
+      const rev=ptx.reduce((s,t)=>s+t.totalAmount,0);
+      showModal(`
+        <div style="text-align:center;margin-bottom:14px">
+          <div style="font-size:32px;margin-bottom:8px">🌙</div>
+          <h3>New day — export yesterday?</h3>
+          <p style="font-size:12px;color:#888;margin-top:4px">${new Date(prev).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</p>
+        </div>
+        <div class="hint-box">${ptx.length} sessions · ${inr(rev)} revenue<br>Back up this data before it gets mixed with today's.</div>
+        <button class="btn-pri" onclick="exportCSV('${prev}');markExported('${prev}');closeModal()">📊 Export CSV Now</button>
+        <button class="btn-pri grn" onclick="exportPDF('${prev}');markExported('${prev}');closeModal()">📄 Export PDF Now</button>
+        <button class="btn-sec" onclick="markExported('${prev}');closeModal()">Skip for now</button>
+      `);
+    }
+  }
+},60000);
+
+// ═══ FLOOR VIEW ═══
+function renderFloor(){
+  let html=`<div class="legend">
+    <span class="leg"><span class="ldot" style="background:#EAF3DE;border-color:#3B6D11"></span>Free</span>
+    <span class="leg"><span class="ldot" style="background:#FAEEDA;border-color:#BA7517"></span>Occupied</span>
+    <span class="leg"><span class="ldot" style="background:#E6F1FB;border-color:#185FA5"></span>Reserved</span>
+    <span style="font-size:10px;color:#bbb">Dot = same group</span>
+  </div><div class="seat-grid">`;
+  seats.forEach(seat=>{
+    if(seat.blocked){
+      const bi=seat.blockInfo||{};
+      html+=`<div class="seat blk" onclick="openBlockedOptions(${seat.id})">
+        <div class="sn">#${String(seat.id).padStart(2,'0')}</div>
+        <div class="s-lbl-blk">RSVD</div>
+        <div class="s-grp" style="color:#185FA5;font-size:9px">${(bi.name||'').substring(0,8)||'—'}</div>
+        ${bi.time?`<div class="s-grp" style="font-size:9px">${bi.time}</div>`:''}
+      </div>`;
+    } else if(seat.occupied){
+      const c=getGrpColor(seat.groupId);
+      html+=`<div class="seat occ" onclick="openCheckout('${seat.groupId}')">
+        <span class="grp-dot" style="background:${c}"></span>
+        <div class="sn">#${String(seat.id).padStart(2,'0')}</div>
+        <div class="s-tim" id="t${seat.id}">${fmtDur(seat.t0)}</div>
+        <div class="s-grp">${seat.groupSize}p·<span id="a${seat.id}">${inr(calcSeatCharge(seat.t0,seat.groupSize))}</span></div>
+      </div>`;
+    } else {
+      html+=`<div class="seat free" onclick="openFreeOptions(${seat.id})">
+        <div class="sn">#${String(seat.id).padStart(2,'0')}</div>
+        <div class="s-lbl">free</div>
+      </div>`;
+    }
+  });
+  html+='</div>';
+  document.getElementById('content').innerHTML=html;
+}
+function tickUpdate(){
+  if(currentView!=='floor')return;
+  seats.forEach(s=>{
+    if(s.occupied){
+      const te=document.getElementById('t'+s.id);
+      const ae=document.getElementById('a'+s.id);
+      if(te)te.textContent=fmtDur(s.t0);
+      if(ae)ae.textContent=inr(calcSeatCharge(s.t0,s.groupSize));
+    }
+  });
+  renderStats();
+}
+
+// ═══ FREE SEAT OPTIONS ═══
+function openFreeOptions(id){
+  showModal(`
+    <h3>Seat #${String(id).padStart(2,'0')}</h3>
+    <p style="font-size:12px;color:#888;margin:-8px 0 14px">What would you like to do?</p>
+    <button class="btn-pri" style="margin-top:0" onclick="closeModal();openCheckin(${id})">✓ Check In Guest</button>
+    <button class="btn-pri blue" onclick="closeModal();openBlockSeat(${id})">🔒 Reserve for Appointment</button>
+    <button class="btn-sec" onclick="closeModal()">Cancel</button>
+  `);
+}
+
+// ═══ CHECK-IN ═══
+function openCheckin(startId,prefillName=''){
+  showModal(`
+    <h3>Check in — seat #${String(startId).padStart(2,'0')}</h3>
+    <div class="fgrp"><label class="flabel">Customer / group name</label>
+      <input id="ci-name" placeholder="Enter name (recommended)" value="${prefillName}" autocomplete="off">
+    </div>
+    <div id="ci-namewarn" style="font-size:11px;color:#BA7517;margin:-8px 0 8px;display:none">⚠ Name helps identify this group later</div>
+    <div class="fgrp"><label class="flabel">Number of persons</label>
+      <div class="counter">
+        <button class="cbtn" onclick="chgP(-1)">−</button>
+        <span class="cval" id="ci-p">1</span>
+        <button class="cbtn" onclick="chgP(1)">+</button>
+        <span style="font-size:11px;color:#999">× 1 seat each</span>
+      </div>
+    </div>
+    <div class="hint-box">3 persons → 3 seats occupied automatically<br><strong>${inr(settings.ratePerHour)}/hr per seat · Minimum 1 hour</strong></div>
+    <div id="ci-warn"></div>
+    <button class="btn-pri" onclick="doCheckin(${startId})">Start Session</button>
+    <button class="btn-sec" onclick="closeModal()">Cancel</button>
+  `);
+  setTimeout(()=>{
+    const ni=document.getElementById('ci-name');
+    if(ni) ni.addEventListener('blur',()=>{
+      const w=document.getElementById('ci-namewarn');
+      if(w) w.style.display=ni.value.trim()?'none':'block';
+    });
+  },100);
+}
+function chgP(d){
+  const el=document.getElementById('ci-p');
+  const n=Math.max(1,parseInt(el.textContent)+d);
+  el.textContent=n;
+  const avail=seats.filter(s=>!s.occupied&&!s.blocked).length;
+  const w=document.getElementById('ci-warn');
+  if(w) w.innerHTML=n>avail?`<div class="warn-box">Only ${avail} free seats available!</div>`:'';
+}
 function doCheckin(startId){
   const persons=parseInt(document.getElementById('ci-p').textContent);
-  let name=document.getElementById('ci-name').value.trim();
-
+  const name=document.getElementById('ci-name').value.trim();
   if(!name){
-    name = String(customerCounter).padStart(3,'0');
-    customerCounter++;
+    const w=document.getElementById('ci-namewarn');
+    if(w)w.style.display='block';
   }
-
   const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{
     const ai=a.id>=startId?a.id-startId:a.id+TOTAL_SEATS;
     const bi=b.id>=startId?b.id-startId:b.id+TOTAL_SEATS;
     return ai-bi;
   });
-
   if(free.length<persons){alert(`Only ${free.length} free seats available!`);return;}
-
   const toOcc=free.slice(0,persons).map(s=>s.id);
   const gid='g'+Date.now(), t0=Date.now();
-
   seats=seats.map(s=>toOcc.includes(s.id)?{...s,occupied:true,name,t0,groupId:gid,groupSize:persons}:s);
-
   saveAll();closeModal();
   if(currentView==='floor')renderFloor();
 }
 
-// ===== UPDATED CHECKOUT (ADD PHONE) =====
-// Add this inside openCheckout HTML
-// <input id="co-phone" placeholder="9876543210">
+// ═══ BLOCK / RESERVE ═══
+function openBlockSeat(startId){
+  showModal(`
+    <h3>Reserve Seat #${String(startId).padStart(2,'0')}</h3>
+    <div class="fgrp"><label class="flabel">Customer name</label><input id="blk-name" placeholder="Enter name..." autocomplete="off"></div>
+    <div class="fgrp"><label class="flabel">Appointment time</label><input id="blk-time" type="time" value="${new Date().toTimeString().slice(0,5)}"></div>
+    <div class="fgrp"><label class="flabel">Note (optional)</label><input id="blk-note" placeholder="e.g. Birthday party..."></div>
+    <div class="fgrp"><label class="flabel">Number of seats to reserve</label>
+      <div class="counter">
+        <button class="cbtn" onclick="chgBlk(-1)">−</button>
+        <span class="cval" id="blk-n">1</span>
+        <button class="cbtn" onclick="chgBlk(1)">+</button>
+      </div>
+    </div>
+    <button class="btn-pri blue" onclick="doBlockSeat(${startId})">Reserve Seats</button>
+    <button class="btn-sec" onclick="closeModal()">Cancel</button>
+  `);
+}
+function chgBlk(d){const el=document.getElementById('blk-n');el.textContent=Math.max(1,parseInt(el.textContent)+d);}
+function doBlockSeat(startId){
+  const name=document.getElementById('blk-name').value.trim();
+  const time=document.getElementById('blk-time').value;
+  const note=document.getElementById('blk-note').value.trim();
+  const n=parseInt(document.getElementById('blk-n').textContent);
+  const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{
+    const ai=a.id>=startId?a.id-startId:a.id+TOTAL_SEATS;
+    const bi=b.id>=startId?b.id-startId:b.id+TOTAL_SEATS;
+    return ai-bi;
+  });
+  if(free.length<n){alert(`Only ${free.length} free seats!`);return;}
+  const toBlk=free.slice(0,n).map(s=>s.id);
+  seats=seats.map(s=>toBlk.includes(s.id)?{...s,blocked:true,blockInfo:{name,time,note}}:s);
+  saveAll();closeModal();
+  if(currentView==='floor')renderFloor();
+}
+function openBlockedOptions(id){
+  const seat=seats.find(s=>s.id===id);
+  const bi=seat.blockInfo||{};
+  showModal(`
+    <h3>Reserved — Seat #${String(id).padStart(2,'0')}</h3>
+    <div class="bill-box">
+      <div class="brow"><span class="lbl">Name</span><span class="val" style="font-family:inherit">${bi.name||'—'}</span></div>
+      <div class="brow"><span class="lbl">Time</span><span class="val">${bi.time||'—'}</span></div>
+      ${bi.note?`<div class="brow"><span class="lbl">Note</span><span class="val" style="font-family:inherit;font-size:11px">${bi.note}</span></div>`:''}
+    </div>
+    <button class="btn-pri" style="margin-top:0" onclick="convertToCheckin(${id})">✓ Check In Now</button>
+    <button class="btn-sec" style="border-color:#BA7517;color:#BA7517" onclick="editBlockedSeat(${id})">✎ Edit Reservation</button>
+    <button class="btn-sec" style="border-color:#C0392B;color:#C0392B" onclick="requirePIN('Remove Reservation',()=>unblockSeat(${id}))">✕ Remove Reservation</button>
+    <button class="btn-sec" onclick="closeModal()">Close</button>
+  `);
+}
+function convertToCheckin(id){
+  const seat=seats.find(s=>s.id===id);
+  const name=(seat.blockInfo||{}).name||'';
+  seats=seats.map(s=>s.id===id?{...s,blocked:false,blockInfo:null}:s);
+  saveAll();closeModal();openCheckin(id,name);
+}
+function editBlockedSeat(id){
+  const bi=(seats.find(s=>s.id===id)||{}).blockInfo||{};
+  closeModal();
+  showModal(`
+    <h3>Edit Reservation — #${String(id).padStart(2,'00')}</h3>
+    <div class="fgrp"><label class="flabel">Customer name</label><input id="eblk-name" value="${bi.name||''}"></div>
+    <div class="fgrp"><label class="flabel">Time</label><input id="eblk-time" type="time" value="${bi.time||''}"></div>
+    <div class="fgrp"><label class="flabel">Note</label><input id="eblk-note" value="${bi.note||''}"></div>
+    <button class="btn-pri" onclick="doEditBlock(${id})">Save</button>
+    <button class="btn-sec" onclick="openBlockedOptions(${id})">← Back</button>
+  `);
+}
+function doEditBlock(id){
+  const name=document.getElementById('eblk-name').value.trim();
+  const time=document.getElementById('eblk-time').value;
+  const note=document.getElementById('eblk-note').value.trim();
+  seats=seats.map(s=>s.id===id?{...s,blockInfo:{name,time,note}}:s);
+  saveAll();closeModal();
+  if(currentView==='floor')renderFloor();
+}
+function unblockSeat(id){
+  seats=seats.map(s=>s.id===id?{...s,blocked:false,blockInfo:null}:s);
+  saveAll();closeModal();
+  if(currentView==='floor')renderFloor();
+}
 
-// ===== UPDATED FINALIZE =====
+// ═══ CHECKOUT ═══
+function openCheckout(gid){
+  selectedMethod='cash';
+  const grp=seats.filter(s=>s.groupId===gid);
+  if(!grp.length)return;
+  const s0=grp[0], persons=s0.groupSize;
+  if(!coInfo||coInfo.gid!==gid) cartItems={};
+  coInfo={gid,t0:s0.t0,persons};
+  const seatNums=grp.map(s=>'#'+String(s.id).padStart(2,'0')).join(', ');
+  const sc=calcSeatCharge(s0.t0,persons);
+  const cats=[...new Set(menuItems.map(m=>m.category))];
+  const menuHTML=cats.map(cat=>{
+    const items=menuItems.filter(m=>m.category===cat);
+    return `<div style="margin-bottom:8px">
+      <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${cat}</div>
+      ${items.map(it=>`<div class="add-row">
+        <div><span style="font-size:12px">${it.name}</span><span style="font-size:11px;color:#aaa;margin-left:4px">${inr(it.price)}</span></div>
+        <div style="display:flex;align-items:center;gap:5px">
+          <button class="cbtn" style="width:24px;height:24px;font-size:13px" onclick="chgCart('${it.id}',-1)">−</button>
+          <span style="font-family:monospace;font-size:12px;min-width:14px;text-align:center" id="cart-${it.id}">${cartItems[it.id]||0}</span>
+          <button class="cbtn" style="width:24px;height:24px;font-size:13px" onclick="chgCart('${it.id}',1)">+</button>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+  showModal(`
+    <h3>Checkout — ${persons}p</h3>
+    <div class="bill-box">
+      <div class="brow"><span class="lbl">Customer</span><span class="val" style="font-family:inherit">${s0.name||'<span style="color:#aaa">No name</span>'}</span></div>
+      <div class="brow"><span class="lbl">Seats (${persons})</span><span class="val" style="font-family:inherit;font-size:10px">${seatNums}</span></div>
+      <div class="brow"><span class="lbl">Check-in</span><span class="val">${new Date(s0.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span></div>
+      <div class="brow"><span class="lbl">Duration</span><span class="val" id="co-d">${fmtDur(s0.t0)}</span></div>
+      <div class="brow"><span class="lbl">Seat charge</span><span class="val" id="co-sc">${inr(sc)}</span></div>
+      <div class="brow"><span class="lbl">Food & drinks</span><span class="val" id="co-ao">₹0</span></div>
+      <div style="border-top:1px dashed #ccc;margin:7px 0"></div>
+      <div class="btotal" id="co-total">${inr(sc)}</div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:#666;margin-bottom:5px">+ Add food & beverages</div>
+    <div style="max-height:155px;overflow-y:auto;border:1px solid #eee;border-radius:8px;padding:8px 10px;background:#fafafa;margin-bottom:10px">${menuHTML}</div>
+    <div class="fgrp"><label class="flabel">Payment method</label>
+      <div class="pay-row">
+        <button class="pbtn sel" id="pm-cash" onclick="selM('cash')">CASH</button>
+        <button class="pbtn" id="pm-upi" onclick="selM('upi')">UPI</button>
+        <button class="pbtn" id="pm-card" onclick="selM('card')">CARD</button>
+      </div>
+    </div>
+    <button class="btn-pri" id="co-btn" onclick="doCheckout('${gid}')">Confirm Checkout — ${inr(sc)}</button>
+    <button class="btn-sec" style="border-color:#BA7517;color:#BA7517" onclick="requirePIN('Edit/Cancel Session',()=>openEditSession('${gid}'))">✎ Edit / Cancel Session</button>
+    <button class="btn-sec" onclick="closeModal()">Keep Session Running</button>
+  `);
+  if(window._coIv)clearInterval(window._coIv);
+  window._coIv=setInterval(refreshCoTotals,1000);
+}
+function chgCart(itemId,d){
+  cartItems[itemId]=Math.max(0,(cartItems[itemId]||0)+d);
+  if(!cartItems[itemId])delete cartItems[itemId];
+  const el=document.getElementById('cart-'+itemId);
+  if(el)el.textContent=cartItems[itemId]||0;
+  refreshCoTotals();
+}
+function refreshCoTotals(){
+  if(!coInfo)return;
+  const sc=calcSeatCharge(coInfo.t0,coInfo.persons);
+  const ao=calcCartTotal();
+  const total=sc+ao;
+  const d=document.getElementById('co-d');
+  const s=document.getElementById('co-sc');
+  const a=document.getElementById('co-ao');
+  const t=document.getElementById('co-total');
+  const b=document.getElementById('co-btn');
+  if(d)d.textContent=fmtDur(coInfo.t0);
+  if(s)s.textContent=inr(sc);
+  if(a)a.textContent=inr(ao);
+  if(t)t.textContent=inr(total);
+  if(b)b.textContent=`Confirm Checkout — ${inr(total)}`;
+}
+function selM(m){
+  selectedMethod=m;
+  ['cash','upi','card'].forEach(x=>{const el=document.getElementById('pm-'+x);if(el)el.classList.toggle('sel',x===m);});
+}
+
+// ═══ LARGE BILL CONFIRMATION ═══
+function doCheckout(gid){
+  if(window._coIv){clearInterval(window._coIv);window._coIv=null;}
+  const grp=seats.filter(s=>s.groupId===gid);
+  if(!grp.length)return;
+  const s0=grp[0], persons=s0.groupSize;
+  const sc=calcSeatCharge(s0.t0,persons);
+  const ao=calcCartTotal();
+  const total=sc+ao;
+  const threshold=settings.largeBillThreshold||500;
+  if(total>=threshold){
+    showModal(`
+      <h3 style="text-align:center">Confirm Payment</h3>
+      <div class="big-bill">
+        <div class="big-bill-amt">${inr(total)}</div>
+        <div class="big-bill-lbl">${s0.name||'Guest'} · ${persons} seat${persons>1?'s':''} · ${selectedMethod.toUpperCase()}</div>
+        <div style="font-size:11px;color:#aaa;margin-top:4px">Seat: ${inr(sc)}${ao?` + Food: ${inr(ao)}`:''}</div>
+      </div>
+      <div class="warn-box" style="text-align:center">Please confirm this amount with the customer before proceeding.</div>
+      <button class="btn-pri" onclick="finalizeCheckout('${gid}')">✓ Customer Confirmed — Proceed</button>
+      <button class="btn-sec" onclick="openCheckout('${gid}')">← Go Back</button>
+    `);
+    return;
+  }
+  finalizeCheckout(gid);
+}
 function finalizeCheckout(gid){
   const grp=seats.filter(s=>s.groupId===gid);
   if(!grp.length)return;
-
   const s0=grp[0], persons=s0.groupSize;
   const sc=calcSeatCharge(s0.t0,persons);
   const ao=calcCartTotal();
   const addons=getCartAddons();
-
-  const phone = document.getElementById('co-phone')?.value || '';
-
-  const tx={
-    id:Date.now(),
-    seatIds:grp.map(s=>s.id),
-    name:s0.name,
-    phone,
-    persons,
-    t0:s0.t0,
-    t1:Date.now(),
-    seatCharge:sc,
-    addons,
-    totalAmount:sc+ao,
-    method:selectedMethod,
-    date:todayStr()
-  };
-
+  const tx={id:Date.now(),seatIds:grp.map(s=>s.id),name:s0.name,persons,t0:s0.t0,t1:Date.now(),seatCharge:sc,addons,totalAmount:sc+ao,method:selectedMethod,date:todayStr()};
   seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0}:s);
   delete groupColorMap[gid];
-
   txns=[tx,...txns]; cartItems={}; coInfo=null;
-
   saveAll(); showReceipt(tx);
   if(currentView==='floor')renderFloor();
 }
 
-// ===== WHATSAPP =====
-function sendWhatsApp(txId){
-  const tx = txns.find(t=>t.id===txId);
-  if(!tx || !tx.phone){ alert("No phone number"); return; }
-
-  const duration = fmtMins(tx.t1 - tx.t0);
-  const ao = tx.addons ? tx.addons.reduce((s,a)=>s+a.price*a.qty,0) : 0;
-
-  const msg = `Hi ${tx.name} 👋\n\nThanks for visiting The Playhouse 🎲\n\nTotal: ${inr(tx.totalAmount)}\n\nSee you again 😊`;
-
-  window.open(`https://wa.me/91${tx.phone}?text=${encodeURIComponent(msg)}`);
+// ═══ EDIT / CANCEL SESSION ═══
+function openEditSession(gid){
+  const grp=seats.filter(s=>s.groupId===gid);
+  if(!grp.length)return;
+  const s0=grp[0];
+  showModal(`
+    <h3>Edit Session</h3>
+    <div class="fgrp"><label class="flabel">Customer name</label><input id="es-name" value="${s0.name}" placeholder="Enter name..."></div>
+    <div style="background:#f7f7f7;border-radius:7px;padding:8px 10px;font-size:12px;color:#888;margin-bottom:12px">
+      Seats: ${grp.map(s=>'#'+String(s.id).padStart(2,'0')).join(', ')} · ${s0.groupSize} person(s)<br>
+      <span style="font-size:11px">Seat count cannot change mid-session</span>
+    </div>
+    <button class="btn-pri" style="margin-top:0" onclick="doEditSession('${gid}')">Save Changes</button>
+    <button class="btn-pri red" onclick="confirmCancelSession('${gid}')">✕ Cancel Session (No Charge)</button>
+    <button class="btn-sec" onclick="openCheckout('${gid}')">← Back to Checkout</button>
+  `);
+}
+function doEditSession(gid){
+  const name=document.getElementById('es-name').value.trim();
+  seats=seats.map(s=>s.groupId===gid?{...s,name}:s);
+  saveAll();closeModal();
+  if(currentView==='floor')renderFloor();
+}
+function confirmCancelSession(gid){
+  const grp=seats.filter(s=>s.groupId===gid);
+  const s0=grp[0];
+  showModal(`
+    <h3>Cancel Session?</h3>
+    <div class="warn-box">⚠ This frees all ${s0.groupSize} seat(s) with NO charge recorded. This cannot be undone.</div>
+    <div style="font-size:12px;color:#888;margin-bottom:12px">
+      Customer: <strong>${s0.name||'Guest'}</strong><br>
+      Seats: ${grp.map(s=>'#'+String(s.id).padStart(2,'0')).join(', ')}<br>
+      Time open: ${fmtDur(s0.t0)}
+    </div>
+    <button class="btn-pri red" style="margin-top:0" onclick="doCancelSession('${gid}')">Yes, Cancel Session — No Charge</button>
+    <button class="btn-sec" onclick="openCheckout('${gid}')">No — Go Back to Checkout</button>
+  `);
+}
+function doCancelSession(gid){
+  seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0}:s);
+  delete groupColorMap[gid]; cartItems={}; coInfo=null;
+  saveAll();closeModal();
+  if(currentView==='floor')renderFloor();
 }
 
-// ===== UPDATED RECEIPT PRINT =====
+// ═══ RECEIPT ═══
+function showReceipt(tx){
+  const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
+  const aoHTML=tx.addons&&tx.addons.length?tx.addons.map(a=>`<div class="brow"><span class="lbl">${a.name} ×${a.qty}</span><span class="val">${inr(a.price*a.qty)}</span></div>`).join(''):'';
+  showModal(`
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:16px;font-weight:700">${settings.cafeName}</div>
+      ${settings.address?`<div style="font-size:11px;color:#999">${settings.address}</div>`:''}
+      <div style="font-size:11px;color:#999;margin-top:2px">${new Date(tx.t1).toLocaleString('en-IN')}</div>
+    </div>
+    <div class="bill-box" style="font-size:12px">
+      <div class="brow"><span class="lbl">Customer</span><span class="val" style="font-family:inherit">${tx.name||'Guest'}</span></div>
+      <div class="brow"><span class="lbl">Seats (${tx.persons})</span><span class="val" style="font-family:inherit;font-size:10px">${sl}</span></div>
+      <div class="brow"><span class="lbl">Check-in</span><span class="val">${new Date(tx.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span></div>
+      <div class="brow"><span class="lbl">Check-out</span><span class="val">${new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span></div>
+      <div class="brow"><span class="lbl">Duration</span><span class="val">${fmtMins(tx.t1-tx.t0)}</span></div>
+      <div class="brow"><span class="lbl">Seat charge</span><span class="val">${inr(tx.seatCharge)}</span></div>
+      ${aoHTML?`<div style="font-size:10px;color:#aaa;margin:5px 0 2px;text-transform:uppercase;letter-spacing:.04em">Food & Beverages</div>${aoHTML}`:''}
+      <div style="border-top:1px dashed #ccc;margin:7px 0"></div>
+      <div class="brow"><span class="lbl">Payment</span><span class="tag ${tx.method}">${tx.method.toUpperCase()}</span></div>
+      <div style="border-top:1px solid #ddd;margin:7px 0"></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:2px 0">
+        <span style="color:#888">TOTAL</span><span style="color:#BA7517">${inr(tx.totalAmount)}</span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-sec" style="flex:1;margin-top:0" onclick="printR(${tx.id})">🖨️ Print</button>
+      <button class="btn-pri" style="flex:2;margin-top:0" onclick="closeModal()">Done</button>
+    </div>
+  `);
+}
 function printR(txId){
   const tx=txns.find(t=>t.id===txId);
   if(!tx)return;
-
+  const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
+  const aoRows=tx.addons&&tx.addons.length?
+    `<tr><td colspan="2" style="padding:5px 0 2px;font-size:11px;color:#888;text-transform:uppercase">Food & Beverages</td></tr>
+    ${tx.addons.map(a=>`<tr><td>${a.name} ×${a.qty}</td><td style="text-align:right">Rs.${Math.round(a.price*a.qty).toLocaleString('en-IN')}</td></tr>`).join('')}`:'';
   const w=window.open('','_blank','width=400,height=720');
-
-  w.document.write(`
-  <html>
-  <head>
-  <style>
-  body{font-family:monospace;font-size:12px;width:260px;margin:0 auto;padding:10px;text-align:center}
-  .logo{width:120px;margin-bottom:6px}
-  .title{font-size:14px;font-weight:bold}
-  .sub{font-size:10px;color:#666;margin-bottom:10px}
-  table{width:100%;border-collapse:collapse;text-align:left}
-  td{padding:3px 0;border-bottom:1px dashed #ddd}
-  td:last-child{text-align:right}
-  .big{font-size:16px;font-weight:bold}
-  </style>
-  </head>
-
+  w.document.write(`<html><head><title>Receipt - ${settings.cafeName}</title>
+  <style>body{font-family:monospace;font-size:13px;width:290px;margin:auto;padding:20px}
+  h2{text-align:center;font-size:17px;margin:0 0 2px}.sub{text-align:center;font-size:11px;color:#888;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px solid #eee}tr:last-child td{border-bottom:none}
+  hr{border:none;border-top:1px dashed #ccc;margin:10px 0}.big{font-size:18px;font-weight:bold}</style></head>
   <body>
-
-  <img src="${LOGO}" class="logo">
-  <div class="title">The Playhouse</div>
-  <div class="sub">Billing v1.0</div>
-
+  <h2>${settings.cafeName}</h2>
+  ${settings.address?`<p class="sub">${settings.address}</p>`:''}
+  <p class="sub">${new Date(tx.t1).toLocaleString('en-IN')}</p>
   <table>
-  <tr><td>Customer</td><td>ID: ${tx.name}</td></tr>
-  <tr><td>Seats</td><td>${tx.persons}</td></tr>
-  <tr><td>Total</td><td class="big">${inr(tx.totalAmount)}</td></tr>
+  <tr><td>Customer</td><td style="text-align:right">${tx.name||'Guest'}</td></tr>
+  <tr><td>Seats(${tx.persons})</td><td style="text-align:right;font-size:11px">${sl}</td></tr>
+  <tr><td>Check-in</td><td style="text-align:right">${new Date(tx.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td></tr>
+  <tr><td>Check-out</td><td style="text-align:right">${new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td></tr>
+  <tr><td>Duration</td><td style="text-align:right">${fmtMins(tx.t1-tx.t0)}</td></tr>
+  <tr><td>Rate</td><td style="text-align:right">Rs.${settings.ratePerHour}/hr/seat</td></tr>
+  <tr><td>Seat charge</td><td style="text-align:right">Rs.${Math.round(tx.seatCharge).toLocaleString('en-IN')}</td></tr>
+  ${aoRows}
   </table>
-
-  <p style="font-size:10px;color:#aaa;margin-top:10px">Thank you 🎲</p>
-
-  <script>window.onload=function(){window.print();window.close();}</script>
-
-  </body>
-  </html>
-  `);
-
+  <hr><table><tr><td>Payment</td><td style="text-align:right">${tx.method.toUpperCase()}</td></tr></table><hr>
+  <table><tr class="big"><td>TOTAL</td><td style="text-align:right">Rs.${Math.round(tx.totalAmount).toLocaleString('en-IN')}</td></tr></table>
+  <p style="text-align:center;font-size:11px;margin-top:16px;color:#aaa">Thank you for visiting!</p>
+  <script>window.onload=function(){window.print();window.close();}<\/script>
+  </body></html>`);
   w.document.close();
 }
 
+// ═══ MENU VIEW ═══
+function renderMenu(){
+  const cats=[...new Set(menuItems.map(m=>m.category))];
+  let html=`<div style="padding:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:600">Menu (${menuItems.length} items)</div>
+      <button class="btn-pri" style="width:auto;padding:7px 13px;margin-top:0;font-size:12px" onclick="openAddMenuItem()">+ Add Item</button>
+    </div>`;
+  if(!menuItems.length){html+=`<div class="empty">No menu items. Add some!</div>`;}
+  cats.forEach(cat=>{
+    html+=`<div class="sec-lbl" style="margin-top:10px">${cat}</div>`;
+    menuItems.filter(m=>m.category===cat).forEach(item=>{
+      html+=`<div class="menu-item-row">
+        <div><div style="font-size:13px;font-weight:500">${item.name}</div>
+          <div style="font-size:11px;color:#888">${item.category}</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="font-family:monospace;font-size:13px;font-weight:700">${inr(item.price)}</div>
+          <button class="mi-btn" style="border-color:#ccc;color:#555" onclick="openEditMenuItem('${item.id}')">Edit</button>
+          <button class="mi-btn" style="border-color:#C0392B;color:#C0392B" onclick="deleteMenuItem('${item.id}')">Delete</button>
+        </div>
+      </div>`;
+    });
+  });
+  html+='</div>';
+  document.getElementById('content').innerHTML=html;
+}
+function openAddMenuItem(){
+  showModal(`
+    <h3>Add Menu Item</h3>
+    <div class="fgrp"><label class="flabel">Item name</label><input id="mi-name" placeholder="e.g. Filter Coffee"></div>
+    <div class="fgrp"><label class="flabel">Price (₹)</label><input id="mi-price" type="number" min="1" placeholder="e.g. 30"></div>
+    <div class="fgrp"><label class="flabel">Category</label>
+      <select id="mi-cat">${MENU_CATS.map(c=>`<option>${c}</option>`).join('')}</select>
+    </div>
+    <button class="btn-pri" onclick="doAddMenuItem()">Add Item</button>
+    <button class="btn-sec" onclick="closeModal()">Cancel</button>
+  `);
+}
+function doAddMenuItem(){
+  const name=document.getElementById('mi-name').value.trim();
+  const price=parseFloat(document.getElementById('mi-price').value);
+  const category=document.getElementById('mi-cat').value;
+  if(!name||!price||price<=0){alert('Please enter a valid name and price.');return;}
+  menuItems.push({id:'m'+Date.now(),name,price,category});
+  saveAll();closeModal();
+  if(currentView==='menu')renderMenu();
+}
+function openEditMenuItem(id){
+  const it=menuItems.find(m=>m.id===id);if(!it)return;
+  showModal(`
+    <h3>Edit Item</h3>
+    <div class="fgrp"><label class="flabel">Item name</label><input id="mi-name" value="${it.name}"></div>
+    <div class="fgrp"><label class="flabel">Price (₹)</label><input id="mi-price" type="number" value="${it.price}"></div>
+    <div class="fgrp"><label class="flabel">Category</label>
+      <select id="mi-cat">${MENU_CATS.map(c=>`<option${c===it.category?' selected':''}>${c}</option>`).join('')}</select>
+    </div>
+    <button class="btn-pri" onclick="doEditMenuItem('${id}')">Save Changes</button>
+    <button class="btn-sec" onclick="closeModal()">Cancel</button>
+  `);
+}
+function doEditMenuItem(id){
+  const name=document.getElementById('mi-name').value.trim();
+  const price=parseFloat(document.getElementById('mi-price').value);
+  const category=document.getElementById('mi-cat').value;
+  if(!name||!price||price<=0){alert('Please enter valid name and price.');return;}
+  menuItems=menuItems.map(m=>m.id===id?{...m,name,price,category}:m);
+  saveAll();closeModal();
+  if(currentView==='menu')renderMenu();
+}
+function deleteMenuItem(id){
+  if(!confirm('Delete this item?'))return;
+  menuItems=menuItems.filter(m=>m.id!==id);
+  saveAll();if(currentView==='menu')renderMenu();
+}
+
+// ═══ REPORT VIEW ═══
+function renderReport(){
+  const dates=allDates();
+  const tx=txnsForDate(reportDate);
+  const rev=tx.reduce((s,t)=>s+t.totalAmount,0);
+  const seatRev=tx.reduce((s,t)=>s+t.seatCharge,0);
+  const aoRev=tx.reduce((s,t)=>s+(t.addons?t.addons.reduce((a,i)=>a+i.price*i.qty,0):0),0);
+  const guests=tx.reduce((s,t)=>s+t.persons,0);
+  let html=`<div class="rpt">
+    <div class="sec-lbl">Select date</div>
+    <div class="date-pills">
+      ${dates.slice(0,8).map(d=>`<button class="dpill${d===reportDate?' active':''}" onclick="reportDate='${d}';renderReport()">
+        ${d===todayStr()?'Today':new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}
+      </button>`).join('')}
+    </div>
+    <div style="font-size:12px;color:#aaa;margin-bottom:10px">
+      ${new Date(reportDate).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+    </div>
+    <div class="rpt-stats">
+      <div class="rstat"><div class="rstat-v">${inr(rev)}</div><div class="rstat-l">Total Revenue</div></div>
+      <div class="rstat"><div class="rstat-v">${tx.length}</div><div class="rstat-l">Sessions</div></div>
+      <div class="rstat"><div class="rstat-v">${inr(seatRev)}</div><div class="rstat-l">Seat Revenue</div></div>
+      <div class="rstat"><div class="rstat-v">${inr(aoRev)}</div><div class="rstat-l">Food Revenue</div></div>
+    </div>
+    <div class="exp-btns">
+      <button class="exp-btn" onclick="exportCSV('${reportDate}')">📊 Export Excel (CSV)</button>
+      <button class="exp-btn" onclick="exportPDF('${reportDate}')">📄 Export / Print PDF</button>
+    </div>`;
+  if(tx.length>0){
+    html+=`<div class="sec-lbl">Payment breakdown</div><div class="pay-bkdn">`;
+    ['cash','upi','card'].forEach(m=>{
+      const mt=tx.filter(t=>t.method===m);if(!mt.length)return;
+      html+=`<div class="pbrow">
+        <span style="font-weight:600;font-size:12px;text-transform:uppercase">${m}</span>
+        <span style="color:#aaa;font-size:11px">${mt.length} session${mt.length>1?'s':''}</span>
+        <span style="font-family:monospace;font-weight:600;font-size:12px">${inr(mt.reduce((s,t)=>s+t.totalAmount,0))}</span>
+      </div>`;
+    });
+    html+=`</div><div class="sec-lbl">Transactions (${tx.length}) — tap 🖨️ to reprint</div>`;
+    tx.forEach(t=>{
+      const sl=t.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
+      const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
+      html+=`<div class="tx-item">
+        <div style="flex:1;min-width:0">
+          <div class="tx-seat">Seats ${sl} · ${t.persons}p · ${fmtMins(t.t1-t.t0)}</div>
+          <div class="tx-name">${t.name||'<span style="color:#bbb">No name</span>'}</div>
+          <div class="tx-time">${new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} → ${new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
+          ${ao>0?`<div class="tx-time">Food: ${inr(ao)} · ${(t.addons||[]).map(a=>a.name+' ×'+a.qty).join(', ')}</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:10px">
+          <div class="tx-amt">${inr(t.totalAmount)}</div>
+          <span class="tag ${t.method}">${t.method.toUpperCase()}</span>
+          <button class="tx-print" onclick="printR(${t.id})">🖨️ Reprint</button>
+        </div>
+      </div>`;
+    });
+  } else {
+    html+=`<div class="empty">No transactions on this date.</div>`;
+  }
+  html+='</div>';
+  document.getElementById('content').innerHTML=html;
+}
+
+// ═══ EXPORT ═══
+function exportCSV(date){
+  const tx=txnsForDate(date);
+  const rows=[
+    ['Date','Customer','Persons','Seats','Check-in','Check-out','Duration (min)','Seat Charge','Food & Drinks','Total','Payment','Food Items'],
+    ...tx.map(t=>{
+      const sl=t.seatIds.join(' ');
+      const dur=Math.floor((t.t1-t.t0)/60000);
+      const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
+      const aoItems=t.addons?t.addons.map(a=>a.name+'×'+a.qty).join(';'):'';
+      return [t.date,`"${t.name||'Guest'}"`,t.persons,`"${sl}"`,
+        new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
+        new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
+        dur,Math.round(t.seatCharge),Math.round(ao),Math.round(t.totalAmount),t.method,`"${aoItems}"`];
+    })
+  ];
+  const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`${settings.cafeName.replace(/ /g,'-')}-${date.replace(/ /g,'-')}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+function exportPDF(date){
+  const tx=txnsForDate(date);
+  const rev=tx.reduce((s,t)=>s+t.totalAmount,0);
+  const seatRev=tx.reduce((s,t)=>s+t.seatCharge,0);
+  const aoRev=tx.reduce((s,t)=>s+(t.addons?t.addons.reduce((a,i)=>a+i.price*i.qty,0):0),0);
+  const guests=tx.reduce((s,t)=>s+t.persons,0);
+  const rows=tx.map(t=>{
+    const sl=t.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
+    const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
+    return `<tr>
+      <td>${new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}–${new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td>
+      <td>${t.name||'Guest'}</td><td style="text-align:center">${t.persons}</td><td style="font-size:11px">${sl}</td>
+      <td>${fmtMins(t.t1-t.t0)}</td>
+      <td style="text-align:right">Rs.${Math.round(t.seatCharge).toLocaleString('en-IN')}</td>
+      <td style="text-align:right">${ao?'Rs.'+Math.round(ao).toLocaleString('en-IN'):'—'}</td>
+      <td style="text-align:right"><strong>Rs.${Math.round(t.totalAmount).toLocaleString('en-IN')}</strong></td>
+      <td>${t.method.toUpperCase()}</td>
+    </tr>`;
+  }).join('');
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(`<html><head><title>Report - ${settings.cafeName}</title>
+  <style>body{font-family:sans-serif;font-size:13px;padding:28px;max-width:1000px;margin:auto}
+  h1{font-size:20px;margin:0 0 3px}h2{font-size:13px;color:#888;font-weight:normal;margin:0 0 18px}
+  .stats{display:flex;gap:12px;margin-bottom:22px}
+  .stat{border:1px solid #ddd;border-radius:8px;padding:11px 16px;text-align:center;flex:1}
+  .sv{font-size:17px;font-weight:700}.sl{font-size:11px;color:#888;margin-top:2px}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+  th{background:#f5f5f5;padding:7px 8px;text-align:left;border-bottom:2px solid #ddd;font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+  td{padding:6px 8px;border-bottom:1px solid #eee}
+  tfoot td{background:#f9f9f9;font-weight:700;border-top:2px solid #ddd}
+  .prnbtn{margin-top:20px;padding:10px 22px;background:#BA7517;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:13px}
+  @media print{.prnbtn{display:none}}</style></head>
+  <body>
+  <h1>${settings.cafeName}</h1>
+  ${settings.address?`<p style="color:#888;font-size:12px;margin:-14px 0 4px">${settings.address}</p>`:''}
+  <h2>Daily Report — ${new Date(date).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h2>
+  <div class="stats">
+    <div class="stat"><div class="sv">Rs.${Math.round(rev).toLocaleString('en-IN')}</div><div class="sl">Total Revenue</div></div>
+    <div class="stat"><div class="sv">${tx.length}</div><div class="sl">Sessions</div></div>
+    <div class="stat"><div class="sv">${guests}</div><div class="sl">Guests</div></div>
+    <div class="stat"><div class="sv">Rs.${Math.round(seatRev).toLocaleString('en-IN')}</div><div class="sl">Seat Revenue</div></div>
+    <div class="stat"><div class="sv">Rs.${Math.round(aoRev).toLocaleString('en-IN')}</div><div class="sl">Food Revenue</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Time</th><th>Customer</th><th>Persons</th><th>Seats</th><th>Duration</th><th>Seat Charge</th><th>Food</th><th>Total</th><th>Payment</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr>
+      <td colspan="5">TOTAL (${tx.length} sessions, ${guests} guests)</td>
+      <td style="text-align:right">Rs.${Math.round(seatRev).toLocaleString('en-IN')}</td>
+      <td style="text-align:right">Rs.${Math.round(aoRev).toLocaleString('en-IN')}</td>
+      <td style="text-align:right">Rs.${Math.round(rev).toLocaleString('en-IN')}</td>
+      <td></td>
+    </tr></tfoot>
+  </table>
+  <p style="text-align:right;font-size:11px;color:#aaa;margin-top:14px">Generated by ${settings.cafeName} Billing · ${new Date().toLocaleString('en-IN')}</p>
+  <button class="prnbtn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  </body></html>`);
+  w.document.close();
+}
+
+// ═══ SETTINGS VIEW ═══
+function renderSettings(){
+  document.getElementById('content').innerHTML=`
+    <div class="settings-wrap">
+      <div class="sec-box">
+        <div class="sec-title">Café Details</div>
+        <div class="fgrp"><label class="flabel">Café name</label><input id="s-name" value="${settings.cafeName}" placeholder="My Café"></div>
+        <div class="fgrp"><label class="flabel">Address (shown on receipt)</label><input id="s-addr" value="${settings.address}" placeholder="123 Main St, Coimbatore..."></div>
+        <div class="fgrp" style="margin-bottom:0"><label class="flabel">Rate per hour per seat (₹)</label><input id="s-rate" type="number" value="${settings.ratePerHour}" min="1"></div>
+      </div>
+      <div class="sec-box">
+        <div class="sec-title">🔐 Security — Manager PIN</div>
+        <div class="fgrp"><label class="flabel">PIN (leave blank to disable)</label>
+          <input id="s-pin" type="password" value="${settings.pin||''}" placeholder="Enter PIN (e.g. 1234)" maxlength="8">
+        </div>
+        <div class="fgrp" style="margin-bottom:0"><label class="flabel">Large bill confirmation threshold (₹)</label>
+          <input id="s-threshold" type="number" value="${settings.largeBillThreshold||500}" min="0" placeholder="e.g. 500">
+        </div>
+        <div class="hint-box" style="margin-top:10px;margin-bottom:0">PIN protects: Settings, Cancel Session, Remove Reservation, Clear Data.<br>Default PIN: <strong>1234</strong></div>
+      </div>
+      <button class="btn-pri" style="margin-top:0" onclick="saveSettings()">Save All Settings</button>
+      <div class="sec-box" style="margin-top:14px">
+        <div class="sec-title">Data Management</div>
+        <button class="btn-sec" style="margin-top:0;border-color:#185FA5;color:#185FA5" onclick="exportAllCSV()">📊 Export All Transactions (CSV)</button>
+        <button class="btn-sec" style="margin-top:8px;border-color:#C0392B;color:#C0392B" onclick="requirePIN('Clear All Data',confirmClearData)">⚠ Clear All Data</button>
+      </div>
+      <div class="hint-box" style="margin-top:12px">
+        <strong>v4.1 — Firebase Edition</strong><br>
+        Data saved to Firebase cloud · Export regularly to back up.<br>
+        Total transactions: <strong>${txns.length}</strong>
+      </div>
+    </div>
+  `;
+}
+function confirmReset(){
+  requirePIN('Reset System', () => {
+    showModal(`
+      <h3>⚠️ Reset Entire System?</h3>
+      <div class="warn-box">
+        This will:
+        <br>• Remove ALL active sessions
+        <br>• Delete ALL transactions
+        <br>• Reset total revenue to ₹0
+        <br><br><strong>This cannot be undone.</strong>
+      </div>
+      <button class="btn-pri red" onclick="doFullReset()">YES — RESET EVERYTHING</button>
+      <button class="btn-sec" onclick="closeModal()">Cancel</button>
+    `);
+  });
+}
+function doFullReset(){
+
+  // 1. Reset seats
+  seats = mkSeats();
+
+  // 2. Clear transactions (IMPORTANT → total becomes 0)
+  txns = [];
+
+  // 3. Clear cart + checkout
+  cartItems = {};
+  coInfo = null;
+
+  // 4. Reset group colors
+  groupColorMap = {};
+  gcIdx = 0;
+
+  // 5. Reset export tracking
+  settings.lastExportDate = '';
+
+  // 6. Stop any running intervals
+  if(window._coIv){
+    clearInterval(window._coIv);
+    window._coIv = null;
+  }
+
+  // 7. Save to Firebase
+  saveAll();
+
+  // 8. Close modal
+  closeModal();
+
+  // 9. Refresh UI
+  renderStats();
+  if(currentView === 'floor') renderFloor();
+  if(currentView === 'report') renderReport();
+
+  alert("✅ System reset successful");
+}
+function doFullReset(){
+
+  // 1. Reset seats
+  seats = mkSeats();
+
+  // 2. Clear transactions (IMPORTANT → total becomes 0)
+  txns = [];
+
+  // 3. Clear cart + checkout
+  cartItems = {};
+  coInfo = null;
+
+  // 4. Reset group colors
+  groupColorMap = {};
+  gcIdx = 0;
+
+  // 5. Reset export tracking
+  settings.lastExportDate = '';
+
+  // 6. Stop any running intervals
+  if(window._coIv){
+    clearInterval(window._coIv);
+    window._coIv = null;
+  }
+
+  // 7. Save to Firebase
+  saveAll();
+
+  // 8. Close modal
+  closeModal();
+
+  // 9. Refresh UI
+  renderStats();
+  if(currentView === 'floor') renderFloor();
+  if(currentView === 'report') renderReport();
+
+  alert("✅ System reset successful");
+}
+function saveSettings(){
+  settings.cafeName=document.getElementById('s-name').value.trim()||'My Café';
+  settings.address=document.getElementById('s-addr').value.trim();
+  settings.ratePerHour=parseFloat(document.getElementById('s-rate').value)||99;
+  settings.pin=document.getElementById('s-pin').value;
+  settings.largeBillThreshold=parseFloat(document.getElementById('s-threshold').value)||500;
+  saveAll(); renderStats();
+  const btn=event.target; btn.textContent='✓ Saved!'; btn.style.background='#27AE60';
+  setTimeout(()=>{btn.textContent='Save All Settings';btn.style.background='';},1800);
+}
+function exportAllCSV(){
+  const rows=[
+    ['Date','Customer','Persons','Seats','Check-in','Check-out','Duration (min)','Seat Charge','Food & Drinks','Total','Payment'],
+    ...txns.map(t=>{
+      const sl=t.seatIds.join(' ');
+      const dur=Math.floor((t.t1-t.t0)/60000);
+      const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
+      return [t.date,`"${t.name||'Guest'}"`,t.persons,`"${sl}"`,
+        new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
+        new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
+        dur,Math.round(t.seatCharge),Math.round(ao),Math.round(t.totalAmount),t.method];
+    })
+  ];
+  const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`${settings.cafeName.replace(/ /g,'-')}-all-transactions.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+function confirmClearData(){
+  showModal(`
+    <h3>⚠ Clear All Data?</h3>
+    <div class="warn-box" style="font-size:13px;line-height:1.7">
+      This will permanently delete ALL ${txns.length} transactions and reset all seats.<br>
+      <strong>This cannot be undone.</strong>
+    </div>
+    <button class="btn-sec" style="border-color:#185FA5;color:#185FA5;margin-top:0" onclick="exportAllCSV()">📊 Export First (Recommended)</button>
+    <button class="btn-pri red" onclick="doClearData()">I understand — Delete Everything</button>
+    <button class="btn-sec" onclick="closeModal()">Cancel</button>
+  `);
+}
+function doClearData(){
+  seats=mkSeats(); txns=[]; groupColorMap={}; gcIdx=0; coInfo=null; cartItems={};
+  saveAll(); renderStats(); closeModal();
+  alert('All data cleared.');
+  if(currentView==='settings')renderSettings();
+  else if(currentView==='floor')renderFloor();
+}
+
+// ═══ NAVIGATION ═══
+function setView(v){
+  if(v==='settings'){
+    requirePIN('Access Settings',()=>doSetView('settings'));
+    return;
+  }
+  doSetView(v);
+}
+function doSetView(v){
+  currentView=v;
+  ['floor','menu','report','settings','reset'].forEach(x=>document.getElementById('btn-'+x).classList.toggle('active',x===v));
+  if(v==='floor')renderFloor();
+  else if(v==='menu')renderMenu();
+  else if(v==='report')renderReport();
+  else if(v==='settings')renderSettings();
+  else if(v==='reset')confirmReset();
+}
+
+// ═══ MODAL — BUG FIXED (removed "ocal") ═══
+function showModal(html){
+  const ov=document.getElementById('overlay');
+  ov.innerHTML=`<div class="mbox">${html}</div>`;
+  ov.style.display='flex';
+}
+function closeModal(){
+  document.getElementById('overlay').style.display='none';
+  if(window._coIv){clearInterval(window._coIv);window._coIv=null;}
+  _pinActive=false;
+}
+
+// ═══ INIT ═══
+setInterval(()=>{tickUpdate();if(currentView==='report')renderReport();},1000);
+setTimeout(()=>{
+  const yd=yesterday();
+  const ytx=txnsForDate(yd);
+  if(ytx.length>0&&settings.lastExportDate!==yd){
+    checkExportBanner();
+  }
+},1500);
+
+async function startApp(){
+  await loadAll();
+  renderStats();
+  renderFloor();
+  checkExportBanner();
+}
+
+startApp();
 </script>
+</body>
+</html>
