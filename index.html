@@ -182,7 +182,7 @@ const DEFAULT_MENU = [
   {id:'m12',name:'Banana Cake',price:40,category:'Desserts'},
 ];
 
-let settings={cafeName:'The Playhouse',address:'',ratePerHour:99,pin:'1234',lastExportDate:'',largeBillThreshold:500};
+let settings={cafeName:'THE PLAYHOUSE',address:'',ratePerHour:99,pin:'1234',lastExportDate:'',largeBillThreshold:500};
 let seats=mkSeats(),txns=[],menuItems=JSON.parse(JSON.stringify(DEFAULT_MENU));
 let groupColorMap={},gcIdx=0,currentView='floor',selectedMethod='cash';
 let cartItems={},coInfo=null,reportDate=todayStr();
@@ -421,7 +421,7 @@ function openFreeOptions(id){showModal(`<h3>Seat #${String(id).padStart(2,'0')}<
 function openCheckin(startId,prefillName=''){
   showModal(`<h3>Check in — seat #${String(startId).padStart(2,'0')}</h3>
     <div class="fgrp"><label class="flabel">Customer name (leave blank for auto ID)</label>
-      <input id="ci-name" placeholder="e.g. Ravi — or leave blank → gets #${String(customerCounter).padStart(3,'0')}" value="${prefillName}" autocomplete="off">
+      <input id="ci-name" placeholder="e.g. Ravi — or leave blank → gets #${String(customerCounter).padStart(3,'0')}" value="${prefillName}" autocomplete="off" style="text-transform:uppercase">
     </div>
     <div class="fgrp"><label class="flabel">Number of persons</label>
       <div class="counter"><button class="cbtn" onclick="chgP(-1)">−</button><span class="cval" id="ci-p">1</span><button class="cbtn" onclick="chgP(1)">+</button><span style="font-size:11px;color:#999">× 1 seat each</span></div>
@@ -733,14 +733,18 @@ function showReceipt(tx){
 }
 
 function askPrintBeforeDone(txId){
+  const tx=txns.find(t=>t.id===txId);
+  const hasPhone=tx&&tx.phone;
   showModal(
-    '<div style="text-align:center;padding:8px 0 16px">'
-    +'<div style="font-size:36px;margin-bottom:10px">🖨️</div>'
-    +'<h3 style="font-size:16px;font-weight:700;margin-bottom:6px">Print Receipt?</h3>'
-    +'<p style="font-size:12px;color:#888;line-height:1.6">Would you like to print a receipt<br>before closing this bill?</p>'
+    '<div style="text-align:center;padding:6px 0 12px">'
+    +'<div style="font-size:32px;margin-bottom:7px">🧾</div>'
+    +'<h3 style="font-size:15px;font-weight:700;margin-bottom:4px">Share Receipt?</h3>'
+    +'<p style="font-size:11px;color:#aaa">Choose before closing this bill</p>'
     +'</div>'
-    +'<button class="btn-pri" style="margin-top:0;border-radius:10px;font-size:14px" onclick="printR('+txId+');doneReceipt()">🖨️ Yes — Print & Close</button>'
-    +'<button class="btn-sec" style="margin-top:8px;border-radius:10px;font-size:13px;color:#333;border-color:#ccc" onclick="doneReceipt()">No — Just Close</button>'
+    +'<button class="btn-pri" style="margin-top:0;background:#222;border-radius:10px" onclick="printR('+txId+');doneReceipt()">🖨️ Print Receipt</button>'
+    +(hasPhone?'<button class="btn-pri whatsapp" style="margin-top:7px;border-radius:10px" onclick="sendWhatsApp('+txId+');doneReceipt()">💬 Send on WhatsApp</button>':'')
+    +(hasPhone?'<button class="btn-pri" style="margin-top:7px;border-radius:10px" onclick="printR('+txId+');sendWhatsApp('+txId+');doneReceipt()">🖨️ + 💬 Print & WhatsApp</button>':'')
+    +'<button class="btn-sec" style="margin-top:8px;border-radius:10px" onclick="doneReceipt()">✕ Skip — Just Close</button>'
   );
 }
 
@@ -800,76 +804,72 @@ function saveEditedAddons(txId){
 function sendWhatsApp(txId){const tx=txns.find(t=>t.id===txId);if(!tx||!tx.phone){alert('No phone number.');return;}const ao=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;const msg=`Hi ${tx.name} 👋\n\nThank you for visiting ${settings.cafeName} 🎲\n\n🧾 Your Bill:\nSeats: ${tx.persons}\nDuration: ${fmtMins(tx.t1-tx.t0)}\nSeat charge: ${inr(tx.seatCharge)}${ao?`\nFood & drinks: ${inr(ao)}`:''}\n\n✅ Total Paid: ${inr(tx.totalAmount)} (${tx.method.toUpperCase()})\n\nVisit us again soon! 😊`;window.open(`https://wa.me/91${tx.phone}?text=${encodeURIComponent(msg)}`);}
 function printR(txId){
   const tx=txns.find(t=>t.id===txId);if(!tx)return;
-  const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(' ');
+  const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
   const inT=new Date(tx.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
   const outT=new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
   const dateStr=new Date(tx.t1).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
   const dur=fmtMins(tx.t1-tx.t0);
-  const ao=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
 
-  const W=32; // characters per line for 76mm print area
-  function pad(l,r){l=String(l);r=String(r);const sp=Math.max(1,W-l.length-r.length);return l+' '.repeat(sp)+r;}
-  function line(ch){return ch.repeat(W);}
-  function ctr(t){const s=Math.max(0,Math.floor((W-t.length)/2));return ' '.repeat(s)+t;}
+  function row(l,r,bold){
+    return '<tr'+(bold?' style="font-weight:700"':'')+
+      '><td style="padding:3px 2px;color:#333">'+l+'</td>'+
+      '<td style="padding:3px 2px;text-align:right;font-weight:600">'+r+'</td></tr>';
+  }
+  function divider(dbl){
+    return '<tr><td colspan="2" style="padding:2px 0;border-top:'+(dbl?'2':'1')+'px solid #000;font-size:1px">&nbsp;</td></tr>';
+  }
 
-  const addonLines=tx.addons&&tx.addons.length
-    ?tx.addons.map(a=>pad('  '+a.name+' x'+a.qty,'Rs.'+Math.round(a.price*a.qty))).join('\n')
-    :'';
+  const addonRows=tx.addons&&tx.addons.length
+    ? '<tr><td colspan="2" style="padding:4px 2px 2px;font-size:10px;font-weight:700;letter-spacing:.5px">FOOD & BEVERAGES</td></tr>'
+      + tx.addons.map(a=>row('  '+a.name+' ×'+a.qty,'Rs.'+Math.round(a.price*a.qty))).join('')
+    : '';
 
-  const receipt=[
-    ctr(settings.cafeName.toUpperCase()),
-    settings.address?ctr(settings.address):'',
-    ctr(dateStr),
-    line('─'),
-    pad('CUSTOMER:',tx.name.toUpperCase()),
-    pad('SEATS ('+tx.persons+'p):',sl),
-    pad('IN :',inT),
-    pad('OUT:',outT),
-    pad('DURATION:',dur),
-    pad('RATE:','Rs.'+settings.ratePerHour+'/hr'),
-    line('─'),
-    pad('SEAT CHARGE','Rs.'+Math.round(tx.seatCharge)),
-    addonLines?('FOOD & BEVERAGES:\n'+addonLines):'',
-    line('─'),
-    pad('PAYMENT:',tx.method.toUpperCase()),
-    line('═'),
-    ctr('TOTAL: Rs.'+Math.round(tx.totalAmount).toLocaleString('en-IN')),
-    line('═'),
-    '',
-    ctr('Thank you for visiting!'),
-    ctr('See you again :)'),
-    '',
-  ].filter(l=>l!==null&&l!==undefined).join('\n');
-
-  const w=window.open('','_blank','width=340,height=640');
-  w.document.write('<!DOCTYPE html><html><head><title>Receipt — '+settings.cafeName+'</title>'
+  const html='<!DOCTYPE html><html><head><title>Receipt</title>'
     +'<style>'
-    +'@page{size:80mm auto;margin:3mm 2mm 10mm 2mm}'
+    +'@page{size:80mm auto;margin:3mm 3mm 15mm 3mm}'
     +'*{box-sizing:border-box;margin:0;padding:0}'
-    +'body{font-family:"Courier New",Courier,monospace;font-size:12.5px;line-height:1.55;'
-    +'  width:76mm;margin:0 auto;background:#fff;color:#000}'
-    +'pre{font-family:inherit;font-size:inherit;line-height:inherit;white-space:pre;word-break:normal}'
-    +'.total-line{font-size:16px;font-weight:900;text-align:center;letter-spacing:1px;'
-    +'  padding:3px 0;border-top:2px solid #000;border-bottom:2px solid #000;margin:2px 0}'
-    +'.print-btn{display:block;margin:14px auto 0;padding:9px 28px;background:#BA7517;color:#fff;'
-    +'  border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}'
-    +'@media print{.print-btn{display:none}}'
+    +'body{font-family:"Courier New",Courier,monospace;font-size:12px;line-height:1.4;width:74mm;background:#fff;color:#000}'
+    +'.hdr{text-align:center;padding:4px 0 2px}'
+    +'.hdr-name{font-size:15px;font-weight:900;letter-spacing:1px}'
+    +'.hdr-addr{font-size:10px;color:#444;margin-top:1px}'
+    +'.hdr-date{font-size:11px;margin-top:3px}'
+    +'table{width:100%;border-collapse:collapse;font-size:12px}'
+    +'.total-row{background:#000;color:#fff}'
+    +'.total-row td{padding:5px 4px;font-size:14px;font-weight:900;letter-spacing:.5px}'
+    +'.footer{text-align:center;font-size:10px;padding:6px 0 2px;letter-spacing:.3px}'
+    +'.no-print{text-align:center;margin:12px 0}'
+    +'@media print{.no-print{display:none}}'
     +'</style></head><body>'
-    +'<pre id="top"></pre>'
-    +'<div class="total-line">TOTAL: Rs.'+Math.round(tx.totalAmount).toLocaleString('en-IN')+'</div>'
-    +'<pre id="bot"></pre>'
-    +'<button class="print-btn" onclick="window.print()">🖨️ Print</button>'
-    +'<script>'
-    // Build top = everything before TOTAL line, bot = footer
-    +'var lines='+JSON.stringify(receipt.split('\n'))+';'
-    +'var ti=lines.findIndex(function(l){return l.indexOf("TOTAL:")>-1;});'
-    +'var equalLine='+JSON.stringify(line('═'))+';'
-    +'document.getElementById("top").textContent=lines.slice(0,lines.indexOf(equalLine)).join("\\n");'
-    +'document.getElementById("bot").textContent=lines.slice(lines.lastIndexOf(equalLine)+1).join("\\n");'
-    +'setTimeout(function(){window.print();},500);'
-    +'<\/script>'
-    +'</body></html>');
-  w.document.close();
+    +'<div class="hdr">'
+    +'<div class="hdr-name">'+settings.cafeName.toUpperCase()+'</div>'
+    +(settings.address?'<div class="hdr-addr">'+settings.address+'</div>':'')
+    +'<div class="hdr-date">'+dateStr+'</div>'
+    +'</div>'
+    +'<table>'
+    +'<tr><td colspan="2" style="border-top:2px solid #000;padding:0;font-size:1px">&nbsp;</td></tr>'
+    +row('CUSTOMER',tx.name.toUpperCase(),true)
+    +row('SEATS ('+tx.persons+'p)',sl)
+    +row('IN',inT)
+    +row('OUT',outT)
+    +row('DURATION',dur)
+    +row('RATE','Rs.'+settings.ratePerHour+'/hr/seat')
+    +divider(false)
+    +row('SEAT CHARGE','Rs.'+Math.round(tx.seatCharge).toLocaleString('en-IN'))
+    +addonRows
+    +divider(false)
+    +row('PAYMENT',tx.method.toUpperCase(),true)
+    +'<tr><td colspan="2" style="border-top:2px solid #000;padding:0;font-size:1px">&nbsp;</td></tr>'
+    +'<tr class="total-row"><td>TOTAL</td><td style="text-align:right;font-size:15px">Rs.'+Math.round(tx.totalAmount).toLocaleString('en-IN')+'</td></tr>'
+    +'</table>'
+    +'<div class="footer">Thank you for visiting!<br>See you again 🎲</div>'
+    +'<div class="no-print" style="margin-top:14px">'
+    +'<button onclick="window.print()" style="padding:9px 26px;background:#222;color:#fff;border:none;border-radius:7px;font-size:13px;font-family:inherit;cursor:pointer">🖨️ Print</button>'
+    +'</div>'
+    +'<scr'+'ipt>setTimeout(function(){window.print();},400);<\/scr'+'ipt>'
+    +'</body></html>';
+
+  const w=window.open('','_blank','width=340,height=600');
+  w.document.open();w.document.write(html);w.document.close();
 }
 
 
@@ -926,7 +926,7 @@ function renderSettings(){
       <button class="btn-sec" style="margin-top:0;border-color:#185FA5;color:#185FA5" onclick="exportAllCSV()">📊 Export All Transactions</button>
       <button class="btn-sec" style="margin-top:8px;border-color:#C0392B;color:#C0392B" onclick="requirePIN('Clear All Data',confirmClearData)">⚠ Clear All Data</button>
     </div>
-    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.9</strong><br>Firebase · Auto ID · WhatsApp · Reset+Reservations · Edit Timer · Nav Lock<br>Total transactions: <strong>${txns.length}</strong></div>
+    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v3.0</strong><br>Firebase · Auto ID · WhatsApp · Reset+Reservations · Edit Timer · Nav Lock<br>Total transactions: <strong>${txns.length}</strong></div>
   </div>`;
 }
 function saveSettings(){settings.cafeName=document.getElementById('s-name').value.trim()||'The Playhouse';settings.address=document.getElementById('s-addr').value.trim();settings.ratePerHour=parseFloat(document.getElementById('s-rate').value)||99;settings.pin=document.getElementById('s-pin').value;settings.largeBillThreshold=parseFloat(document.getElementById('s-threshold').value)||500;saveAll();renderStats();const btn=event.target;btn.textContent='✓ Saved!';btn.style.background='#27AE60';setTimeout(()=>{btn.textContent='Save All Settings';btn.style.background='';},1800);}
