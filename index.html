@@ -264,6 +264,7 @@ function openReset(){
   requirePIN('Reset Data',showResetModal);
 }
 function showResetModal(){
+  const rsvCount=seats.filter(s=>s.blocked).length;
   showModal(`<h3 style="color:#C0392B">🗑 Reset Transactions</h3>
     <p style="font-size:12px;color:#888;margin:-8px 0 16px;line-height:1.6">Enter how many <strong>days</strong> and <strong>hours</strong> of recent data to delete.</p>
     <div class="reset-inputs">
@@ -272,6 +273,7 @@ function showResetModal(){
       <div class="reset-field"><label>Hours</label><input type="number" id="reset-hours" min="0" max="23" value="0" oninput="updateResetPreview()"></div>
     </div>
     <div class="reset-preview"><div class="reset-preview-count" id="reset-count">0</div><div class="reset-preview-label" id="reset-label">Enter days or hours above</div><div class="reset-preview-range" id="reset-range"></div></div>
+    ${rsvCount>0?`<div class="hint-box" style="margin-bottom:8px">⚠ <strong>${rsvCount} reservation${rsvCount>1?'s':''}</strong> will also be cleared.</div>`:''}
     <div class="warn-box">⚠ Permanently deletes from Firebase.</div>
     <button class="btn-sec" style="border-color:#185FA5;color:#185FA5;margin-top:0" onclick="exportAllCSV()">📊 Export Backup First</button>
     <button class="btn-pri red" id="reset-confirm-btn" onclick="confirmReset()" disabled style="opacity:.4;cursor:not-allowed">🗑 Delete These Transactions</button>
@@ -293,13 +295,21 @@ function confirmReset(){
   const toDelete=txns.filter(t=>t.t1>=cutoff);
   if(toDelete.length===0){alert('No transactions in that range.');return;}
   const ts=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');
-  showModal(`<h3 style="text-align:center;color:#C0392B">⚠ Final Confirmation</h3><div style="text-align:center;margin:16px 0"><div style="font-family:monospace;font-size:48px;font-weight:700;color:#C0392B;line-height:1">${toDelete.length}</div><div style="font-size:13px;color:#555;margin-top:8px">transaction${toDelete.length!==1?'s':''} will be permanently deleted</div><div style="font-size:11px;color:#aaa;background:#f7f7f7;border-radius:6px;padding:6px 10px;display:inline-block;margin-top:8px">Last ${ts}</div></div><div class="warn-box" style="text-align:center">This <strong>cannot be undone.</strong></div><button class="btn-pri red" style="margin-top:0" onclick="doReset(${cutoff})">Yes — Delete ${toDelete.length} Transaction${toDelete.length!==1?'s':''}</button><button class="btn-sec" onclick="showResetModal()">← Go Back</button>`);
+  const rsvCount=seats.filter(s=>s.blocked).length;
+  showModal(`<h3 style="text-align:center;color:#C0392B">⚠ Final Confirmation</h3><div style="text-align:center;margin:16px 0"><div style="font-family:monospace;font-size:48px;font-weight:700;color:#C0392B;line-height:1">${toDelete.length}</div><div style="font-size:13px;color:#555;margin-top:8px">transaction${toDelete.length!==1?'s':''} will be permanently deleted</div><div style="font-size:11px;color:#aaa;background:#f7f7f7;border-radius:6px;padding:6px 10px;display:inline-block;margin-top:8px">Last ${ts}</div></div>${rsvCount>0?`<div class="hint-box" style="text-align:center">+ ${rsvCount} reservation${rsvCount>1?'s':''} will be cleared</div>`:''}<div class="warn-box" style="text-align:center">This <strong>cannot be undone.</strong></div><button class="btn-pri red" style="margin-top:0" onclick="doReset(${cutoff})">Yes — Delete ${toDelete.length} Transaction${toDelete.length!==1?'s':''}</button><button class="btn-sec" onclick="showResetModal()">← Go Back</button>`);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// FIX 1: doReset now also clears all blocked/reserved seats
+// ═══════════════════════════════════════════════════════════════
 function doReset(cutoff){
   const before=txns.length;txns=txns.filter(t=>t.t1<cutoff);const deleted=before-txns.length;
+  // Clear all reservations when resetting
+  const rsvCleared=seats.filter(s=>s.blocked).length;
+  seats=seats.map(s=>s.blocked?{...s,blocked:false,blockInfo:null}:s);
   saveAll();closeModal();renderStats();
   if(currentView==='report')renderReport();else if(currentView==='floor')renderFloor();
-  showModal(`<div style="text-align:center;padding:14px 0"><div style="font-size:52px;margin-bottom:12px">✅</div><h3 style="font-size:17px">Reset Complete</h3><p style="font-size:13px;color:#888;margin-top:10px;line-height:1.7"><span style="font-family:monospace;font-size:22px;font-weight:700;color:#C0392B;display:block">${deleted}</span>transaction${deleted!==1?'s':''} deleted.<br><strong>${txns.length}</strong> remaining.</p></div><button class="btn-pri grn" onclick="closeModal()">Done</button>`);
+  showModal(`<div style="text-align:center;padding:14px 0"><div style="font-size:52px;margin-bottom:12px">✅</div><h3 style="font-size:17px">Reset Complete</h3><p style="font-size:13px;color:#888;margin-top:10px;line-height:1.7"><span style="font-family:monospace;font-size:22px;font-weight:700;color:#C0392B;display:block">${deleted}</span>transaction${deleted!==1?'s':''} deleted.<br>${rsvCleared>0?`<span style="font-size:12px;color:#185FA5">${rsvCleared} reservation${rsvCleared>1?'s':''} cleared.</span><br>`:''}<strong>${txns.length}</strong> remaining.</p></div><button class="btn-pri grn" onclick="closeModal()">Done</button>`);
 }
 
 // ═══ FLOOR ═══
@@ -311,7 +321,7 @@ function renderFloor(){
       html+=`<div class="seat blk" onclick="openBlockedOptions(${seat.id})"><div class="sn">#${String(seat.id).padStart(2,'0')}</div><div class="s-lbl-blk">RSVD</div><div class="s-grp" style="color:#185FA5;font-size:9px">${(bi.name||'').substring(0,8)||'—'}</div>${bi.date?`<div class="s-grp" style="font-size:9px">${fmtDate(bi.date)}</div>`:''}${bi.time?`<div class="s-grp" style="font-size:9px">${bi.time}</div>`:''}</div>`;
     } else if(seat.occupied){
       const c=getGrpColor(seat.groupId);
-      html+=`<div class="seat occ" onclick="openCheckout('${seat.groupId}')"><span class="grp-dot" style="background:${c}"></span><div class="sn">#${String(seat.id).padStart(2,'0')}</div><div class="s-tim" id="t${seat.id}">${fmtDur(seat.t0)}</div><div class="s-grp">${seat.name||'—'} · ${seat.groupSize}p</div></div>`;
+      html+=`<div class="seat occ" onclick="openCheckout('${seat.groupId}')"><span class="grp-dot" style="background:${c}"></span><div class="sn">#${String(seat.id).padStart(2,'00')}</div><div class="s-tim" id="t${seat.id}">${fmtDur(seat.t0)}</div><div class="s-grp">${seat.name||'—'} · ${seat.groupSize}p</div></div>`;
     } else {
       html+=`<div class="seat free" onclick="openFreeOptions(${seat.id})"><div class="sn">#${String(seat.id).padStart(2,'0')}</div><div class="s-lbl">free</div></div>`;
     }
@@ -442,7 +452,6 @@ function openBlockedOptions(id){
 function convertToCheckin(id){
   const seat=seats.find(s=>s.id===id),bi=seat.blockInfo||{};
   const name=bi.name||'';
-  // Pre-fill cart with pre-order items when converting to checkin
   if(bi.preOrder&&bi.preOrder.length){
     cartItems={};
     bi.preOrder.forEach(a=>{const it=menuItems.find(m=>m.name===a.name);if(it)cartItems[it.id]=a.qty;});
@@ -453,7 +462,6 @@ function convertToCheckin(id){
 function editBlockedSeat(id){
   const bi=(seats.find(s=>s.id===id)||{}).blockInfo||{};
   const cats=[...new Set(menuItems.map(m=>m.category))];
-  // Restore existing pre-order into edit cart
   window._rsvCart={};
   if(bi.preOrder)bi.preOrder.forEach(a=>{const it=menuItems.find(m=>m.name===a.name);if(it)window._rsvCart[it.id]=a.qty;});
   const menuHTML=cats.map(cat=>{
@@ -556,16 +564,49 @@ function finalizeCheckout(gid,phone=''){
   delete groupColorMap[gid];txns=[tx,...txns];cartItems={};coInfo=null;
   saveAll();showReceipt(tx);if(currentView==='floor')renderFloor();
 }
-function openEditSession(gid){const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;const s0=grp[0];showModal(`<h3>Edit Session</h3><div class="fgrp"><label class="flabel">Customer name</label><input id="es-name" value="${s0.name}" placeholder="Enter name..."></div><button class="btn-pri" style="margin-top:0" onclick="doEditSession('${gid}')">Save Changes</button><button class="btn-pri red" onclick="confirmCancelSession('${gid}')">✕ Cancel Session (No Charge)</button><button class="btn-sec" onclick="openCheckout('${gid}')">← Back to Checkout</button>`);}
-function doEditSession(gid){const name=document.getElementById('es-name').value.trim();seats=seats.map(s=>s.groupId===gid?{...s,name}:s);saveAll();closeModal();if(currentView==='floor')renderFloor();}
+
+// ═══════════════════════════════════════════════════════════════
+// FIX 2: openEditSession — now includes editable start time (t0)
+// ═══════════════════════════════════════════════════════════════
+function openEditSession(gid){
+  const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;const s0=grp[0];
+  // Convert stored UTC timestamp to local datetime-local string
+  const t0local=new Date(s0.t0-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+  showModal(`<h3>Edit Session</h3>
+    <div class="fgrp">
+      <label class="flabel">Customer name</label>
+      <input id="es-name" value="${s0.name}" placeholder="Enter name...">
+    </div>
+    <div class="fgrp">
+      <label class="flabel">⏱ Check-in start time</label>
+      <input id="es-t0" type="datetime-local" value="${t0local}">
+    </div>
+    <div class="hint-box" style="margin-bottom:12px">Editing start time corrects the running timer and recalculates the seat charge at checkout.</div>
+    <button class="btn-pri" style="margin-top:0" onclick="doEditSession('${gid}')">Save Changes</button>
+    <button class="btn-pri red" onclick="confirmCancelSession('${gid}')">✕ Cancel Session (No Charge)</button>
+    <button class="btn-sec" onclick="openCheckout('${gid}')">← Back to Checkout</button>`);
+}
+
+// FIX 2b: doEditSession — applies the new t0 to all seats in the group
+function doEditSession(gid){
+  const name=document.getElementById('es-name').value.trim();
+  const t0Input=document.getElementById('es-t0')?.value;
+  const newT0=t0Input?new Date(t0Input).getTime():null;
+  if(newT0&&newT0>Date.now()){alert('Start time cannot be in the future.');return;}
+  seats=seats.map(s=>s.groupId===gid?{...s,name,...(newT0&&newT0>0?{t0:newT0}:{})}:s);
+  // Update coInfo if it's the same group so checkout totals refresh
+  if(coInfo&&coInfo.gid===gid&&newT0)coInfo.t0=newT0;
+  saveAll();closeModal();if(currentView==='floor')renderFloor();
+}
+
 function confirmCancelSession(gid){const grp=seats.filter(s=>s.groupId===gid),s0=grp[0];showModal(`<h3>Cancel Session?</h3><div class="warn-box">⚠ Frees all ${s0.groupSize} seat(s) with NO charge.</div><button class="btn-pri red" style="margin-top:0" onclick="doCancelSession('${gid}')">Yes, Cancel — No Charge</button><button class="btn-sec" onclick="openCheckout('${gid}')">No — Back to Checkout</button>`);}
 function doCancelSession(gid){seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0}:s);delete groupColorMap[gid];cartItems={};coInfo=null;saveAll();closeModal();if(currentView==='floor')renderFloor();}
 
-// ═══════════════════════════════════════════
-// ═══ RECEIPT — nav LOCKED until Done ═══════
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// ═══ RECEIPT — nav LOCKED until Done ═══════════════════════════
+// ═══════════════════════════════════════════════════════════════
 function showReceipt(tx){
-  lockNav(); // 🔒 Lock navigation
+  lockNav();
   const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
   const aoHTML=tx.addons&&tx.addons.length?tx.addons.map(a=>`<div class="brow"><span class="lbl">${a.name} ×${a.qty}</span><span class="val">${inr(a.price*a.qty)}</span></div>`).join(''):'';
   showModal(`
@@ -600,7 +641,7 @@ function showReceipt(tx){
 }
 
 function doneReceipt(){
-  unlockNav(); // 🔓 Unlock navigation
+  unlockNav();
   closeModal();
 }
 
@@ -716,7 +757,7 @@ function renderSettings(){
       <button class="btn-sec" style="margin-top:0;border-color:#185FA5;color:#185FA5" onclick="exportAllCSV()">📊 Export All Transactions</button>
       <button class="btn-sec" style="margin-top:8px;border-color:#C0392B;color:#C0392B" onclick="requirePIN('Clear All Data',confirmClearData)">⚠ Clear All Data</button>
     </div>
-    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.4</strong><br>Firebase · Auto ID · WhatsApp · Reset · Date+Menu Reservations · Edit Bill · Nav Lock<br>Total transactions: <strong>${txns.length}</strong></div>
+    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.5</strong><br>Firebase · Auto ID · WhatsApp · Reset+Reservations · Edit Timer · Nav Lock<br>Total transactions: <strong>${txns.length}</strong></div>
   </div>`;
 }
 function saveSettings(){settings.cafeName=document.getElementById('s-name').value.trim()||'The Playhouse';settings.address=document.getElementById('s-addr').value.trim();settings.ratePerHour=parseFloat(document.getElementById('s-rate').value)||99;settings.pin=document.getElementById('s-pin').value;settings.largeBillThreshold=parseFloat(document.getElementById('s-threshold').value)||500;saveAll();renderStats();const btn=event.target;btn.textContent='✓ Saved!';btn.style.background='#27AE60';setTimeout(()=>{btn.textContent='Save All Settings';btn.style.background='';},1800);}
@@ -725,14 +766,14 @@ function doClearData(){seats=mkSeats();txns=[];groupColorMap={};gcIdx=0;coInfo=n
 
 // ═══ NAV ═══
 function setView(v){
-  if(_receiptActive){showNavLockToast();return;} // 🔒 block if receipt open
+  if(_receiptActive){showNavLockToast();return;}
   if(v==='settings'){requirePIN('Access Settings',()=>doSetView('settings'));return;}
   doSetView(v);
 }
 function doSetView(v){currentView=v;['floor','menu','report','settings'].forEach(x=>document.getElementById('btn-'+x).classList.toggle('active',x===v));if(v==='floor')renderFloor();else if(v==='menu')renderMenu();else if(v==='report')renderReport();else if(v==='settings')renderSettings();}
 function showModal(html){const ov=document.getElementById('overlay');ov.innerHTML=`<div class="mbox">${html}</div>`;ov.style.display='flex';}
 function closeModal(){
-  if(_receiptActive)return; // 🔒 prevent closing receipt by clicking outside
+  if(_receiptActive)return;
   document.getElementById('overlay').style.display='none';
   if(window._coIv){clearInterval(window._coIv);window._coIv=null;}
   _pinActive=false;
