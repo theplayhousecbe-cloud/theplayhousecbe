@@ -434,7 +434,7 @@ function openCheckin(startId,prefillName=''){
 function chgP(d){const el=document.getElementById('ci-p');const n=Math.max(1,parseInt(el.textContent)+d);el.textContent=n;const avail=seats.filter(s=>!s.occupied&&!s.blocked).length;const w=document.getElementById('ci-warn');if(w)w.innerHTML=n>avail?`<div class="warn-box">Only ${avail} free seats!</div>`:'';}
 function doCheckin(startId){
   const persons=parseInt(document.getElementById('ci-p').textContent);
-  let name=document.getElementById('ci-name').value.trim();
+  let name=document.getElementById('ci-name').value.trim().toUpperCase();
   if(!name){name='#'+String(customerCounter).padStart(3,'0');customerCounter++;}
   const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{const ai=a.id>=startId?a.id-startId:a.id+TOTAL_SEATS;const bi=b.id>=startId?b.id-startId:b.id+TOTAL_SEATS;return ai-bi;});
   if(free.length<persons){alert(`Only ${free.length} free seats!`);return;}
@@ -695,35 +695,53 @@ function showReceipt(tx){
   lockNav();
   const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
   const aoHTML=tx.addons&&tx.addons.length?tx.addons.map(a=>`<div class="brow"><span class="lbl">${a.name} ×${a.qty}</span><span class="val">${inr(a.price*a.qty)}</span></div>`).join(''):'';
+  const inT=new Date(tx.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+  const outT=new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
   showModal(`
-    <div style="text-align:center;margin-bottom:14px">
-      <div style="font-size:16px;font-weight:700">${settings.cafeName}</div>
-      ${settings.address?`<div style="font-size:11px;color:#999">${settings.address}</div>`:''}
-      <div style="font-size:11px;color:#999;margin-top:2px">${new Date(tx.t1).toLocaleString('en-IN')}</div>
+    <div style="text-align:center;margin-bottom:12px">
+      <div style="font-size:17px;font-weight:800;letter-spacing:.5px">${settings.cafeName}</div>
+      ${settings.address?`<div style="font-size:11px;color:#999;margin-top:2px">${settings.address}</div>`:''}
+      <div style="font-size:11px;color:#bbb;margin-top:3px">${new Date(tx.t1).toLocaleString('en-IN')}</div>
     </div>
     <div class="bill-box" style="font-size:12px">
-      <div class="brow"><span class="lbl">Customer</span><span class="val" style="font-family:inherit">${tx.name}</span></div>
-      <div class="brow"><span class="lbl">Seats (${tx.persons})</span><span class="val" style="font-family:inherit;font-size:10px">${sl}</span></div>
+      <div class="brow"><span class="lbl">Customer</span><span class="val" style="font-family:inherit;font-weight:700;letter-spacing:.5px">${tx.name.toUpperCase()}</span></div>
+      <div class="brow"><span class="lbl">Seats (${tx.persons}p)</span><span class="val" style="font-family:inherit;font-size:10px">${sl}</span></div>
+      <div class="brow"><span class="lbl">In</span><span class="val">${inT}</span></div>
+      <div class="brow"><span class="lbl">Out</span><span class="val">${outT}</span></div>
       <div class="brow"><span class="lbl">Duration</span><span class="val">${fmtMins(tx.t1-tx.t0)}</span></div>
+      <div class="brow"><span class="lbl">Rate</span><span class="val">${inr(settings.ratePerHour)}/hr/seat</span></div>
       <div class="brow"><span class="lbl">Seat charge</span><span class="val">${inr(tx.seatCharge)}</span></div>
-      ${aoHTML?`<div style="font-size:10px;color:#aaa;margin:5px 0 2px">Food & Beverages</div>${aoHTML}`:''}
-      <div style="border-top:1px dashed #ccc;margin:7px 0"></div>
+      ${aoHTML?`<div style="font-size:10px;color:#aaa;margin:5px 0 2px;font-weight:600">FOOD & BEVERAGES</div>${aoHTML}`:''}
+      <div style="border-top:1px dashed #ccc;margin:8px 0"></div>
       <div class="brow"><span class="lbl">Payment</span><span class="tag ${tx.method}">${tx.method.toUpperCase()}</span></div>
-      <div style="border-top:1px solid #ddd;margin:7px 0"></div>
-      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding:2px 0">
-        <span style="color:#888">TOTAL</span><span style="color:#BA7517">${inr(tx.totalAmount)}</span>
+      <div style="border-top:2px solid #BA7517;margin:8px 0"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">
+        <span style="font-size:13px;font-weight:700;color:#555;letter-spacing:1px">TOTAL</span>
+        <span style="font-size:22px;font-weight:800;color:#BA7517;font-family:monospace">${inr(tx.totalAmount)}</span>
       </div>
     </div>
-    <div class="btn-row">
-      <button class="btn-sec" style="flex:1;margin-top:0" onclick="printR(${tx.id})">🖨️ Print</button>
-      ${tx.phone?`<button class="btn-pri whatsapp" style="flex:1;margin-top:0" onclick="sendWhatsApp(${tx.id})">💬 WhatsApp</button>`:''}
-      <button class="btn-pri" style="flex:2;margin-top:0" onclick="doneReceipt()">Done ✓</button>
+    <div class="btn-row" style="gap:8px">
+      <button class="btn-sec" style="flex:1;margin-top:0;border-radius:10px" onclick="printR(${tx.id})">🖨️ Print</button>
+      ${tx.phone?`<button class="btn-pri whatsapp" style="flex:1;margin-top:0;border-radius:10px" onclick="sendWhatsApp(${tx.id})">💬 WhatsApp</button>`:''}
+      <button class="btn-pri" style="flex:2;margin-top:0;border-radius:10px;font-size:14px" onclick="askPrintBeforeDone(${tx.id})">Done ✓</button>
     </div>
-    <button class="btn-sec" style="margin-top:8px;border-color:#BA7517;color:#BA7517;border-width:1.5px" onclick="editReceiptAddons(${tx.id})">
+    <button class="btn-sec" style="margin-top:8px;border-color:#BA7517;color:#BA7517;border-width:1.5px;border-radius:10px" onclick="editReceiptAddons(${tx.id})">
       ← Forgot something? Add more items
     </button>
-    <div style="text-align:center;font-size:10px;color:#aaa;margin-top:8px">Press <strong>Done</strong> to continue</div>
+    <div style="text-align:center;font-size:10px;color:#bbb;margin-top:8px">Press <strong>Done</strong> to release seats</div>
   `);
+}
+
+function askPrintBeforeDone(txId){
+  showModal(
+    '<div style="text-align:center;padding:8px 0 16px">'
+    +'<div style="font-size:36px;margin-bottom:10px">🖨️</div>'
+    +'<h3 style="font-size:16px;font-weight:700;margin-bottom:6px">Print Receipt?</h3>'
+    +'<p style="font-size:12px;color:#888;line-height:1.6">Would you like to print a receipt<br>before closing this bill?</p>'
+    +'</div>'
+    +'<button class="btn-pri" style="margin-top:0;border-radius:10px;font-size:14px" onclick="printR('+txId+');doneReceipt()">🖨️ Yes — Print & Close</button>'
+    +'<button class="btn-sec" style="margin-top:8px;border-radius:10px;font-size:13px;color:#333;border-color:#ccc" onclick="doneReceipt()">No — Just Close</button>'
+  );
 }
 
 function doneReceipt(){
@@ -782,119 +800,78 @@ function saveEditedAddons(txId){
 function sendWhatsApp(txId){const tx=txns.find(t=>t.id===txId);if(!tx||!tx.phone){alert('No phone number.');return;}const ao=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;const msg=`Hi ${tx.name} 👋\n\nThank you for visiting ${settings.cafeName} 🎲\n\n🧾 Your Bill:\nSeats: ${tx.persons}\nDuration: ${fmtMins(tx.t1-tx.t0)}\nSeat charge: ${inr(tx.seatCharge)}${ao?`\nFood & drinks: ${inr(ao)}`:''}\n\n✅ Total Paid: ${inr(tx.totalAmount)} (${tx.method.toUpperCase()})\n\nVisit us again soon! 😊`;window.open(`https://wa.me/91${tx.phone}?text=${encodeURIComponent(msg)}`);}
 function printR(txId){
   const tx=txns.find(t=>t.id===txId);if(!tx)return;
-  const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
-  const ao=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
+  const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(' ');
+  const inT=new Date(tx.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
+  const outT=new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
+  const dateStr=new Date(tx.t1).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
   const dur=fmtMins(tx.t1-tx.t0);
-  const inTime=new Date(tx.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
-  const outTime=new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
-  const dateStr=new Date(tx.t1).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  const ao=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
 
-  // Helper: pad two strings to fill 42 chars total (fits 80mm at 12px monospace)
-  function row(left,right){
-    const l=String(left),r=String(right);
-    const pad=Math.max(1,42-l.length-r.length);
-    return l+' '.repeat(pad)+r;
-  }
-  function dashes(){return '-'.repeat(42);}
-  function center(txt){const p=Math.max(0,Math.floor((42-txt.length)/2));return ' '.repeat(p)+txt;}
+  const W=32; // characters per line for 76mm print area
+  function pad(l,r){l=String(l);r=String(r);const sp=Math.max(1,W-l.length-r.length);return l+' '.repeat(sp)+r;}
+  function line(ch){return ch.repeat(W);}
+  function ctr(t){const s=Math.max(0,Math.floor((W-t.length)/2));return ' '.repeat(s)+t;}
 
-  let lines=[];
-  lines.push(center(settings.cafeName));
-  if(settings.address)lines.push(center(settings.address));
-  lines.push(center(dateStr));
-  lines.push(dashes());
-  lines.push(row('Customer:',tx.name));
-  lines.push(row('Seats ('+tx.persons+'p):',sl));
-  lines.push(row('In:',inTime));
-  lines.push(row('Out:',outTime));
-  lines.push(row('Duration:',dur));
-  lines.push(row('Rate:','Rs.'+settings.ratePerHour+'/hr/seat'));
-  lines.push(dashes());
-  lines.push(row('Seat Charge','Rs.'+Math.round(tx.seatCharge).toLocaleString('en-IN')));
-  if(tx.addons&&tx.addons.length){
-    lines.push('Food & Beverages:');
-    tx.addons.forEach(a=>{
-      lines.push('  '+row(a.name+' x'+a.qty,'Rs.'+Math.round(a.price*a.qty).toLocaleString('en-IN')));
-    });
-  }
-  lines.push(dashes());
-  lines.push(row('Payment',tx.method.toUpperCase()));
-  lines.push(dashes());
-  // Big total line
-  const totalStr='TOTAL: Rs.'+Math.round(tx.totalAmount).toLocaleString('en-IN');
-  lines.push(center(totalStr));
-  lines.push(dashes());
-  lines.push(center('Thank you for visiting!'));
-  lines.push(center('See you again :)'));
+  const addonLines=tx.addons&&tx.addons.length
+    ?tx.addons.map(a=>pad('  '+a.name+' x'+a.qty,'Rs.'+Math.round(a.price*a.qty))).join('\n')
+    :'';
 
-  const bodyText=lines.join('\n');
+  const receipt=[
+    ctr(settings.cafeName.toUpperCase()),
+    settings.address?ctr(settings.address):'',
+    ctr(dateStr),
+    line('─'),
+    pad('CUSTOMER:',tx.name.toUpperCase()),
+    pad('SEATS ('+tx.persons+'p):',sl),
+    pad('IN :',inT),
+    pad('OUT:',outT),
+    pad('DURATION:',dur),
+    pad('RATE:','Rs.'+settings.ratePerHour+'/hr'),
+    line('─'),
+    pad('SEAT CHARGE','Rs.'+Math.round(tx.seatCharge)),
+    addonLines?('FOOD & BEVERAGES:\n'+addonLines):'',
+    line('─'),
+    pad('PAYMENT:',tx.method.toUpperCase()),
+    line('═'),
+    ctr('TOTAL: Rs.'+Math.round(tx.totalAmount).toLocaleString('en-IN')),
+    line('═'),
+    '',
+    ctr('Thank you for visiting!'),
+    ctr('See you again :)'),
+    '',
+  ].filter(l=>l!==null&&l!==undefined).join('\n');
 
-  const w=window.open('','_blank','width=320,height=600');
-  w.document.write(
-    '<!DOCTYPE html><html><head><title>Receipt</title>'
+  const w=window.open('','_blank','width=340,height=640');
+  w.document.write('<!DOCTYPE html><html><head><title>Receipt — '+settings.cafeName+'</title>'
     +'<style>'
-    +'@page{size:80mm auto;margin:4mm 4mm 8mm 4mm}'
+    +'@page{size:80mm auto;margin:3mm 2mm 10mm 2mm}'
     +'*{box-sizing:border-box;margin:0;padding:0}'
-    +'body{'
-    +'  font-family:"Courier New",Courier,monospace;'
-    +'  font-size:12px;'
-    +'  line-height:1.5;'
-    +'  width:72mm;'
-    +'  margin:0 auto;'
-    +'  color:#000;'
-    +'  background:#fff;'
-    +'}'
-    +'pre{'
-    +'  font-family:inherit;'
-    +'  font-size:inherit;'
-    +'  white-space:pre-wrap;'
-    +'  word-break:break-all;'
-    +'}'
-    +'.total{'
-    +'  font-size:15px;'
-    +'  font-weight:bold;'
-    +'  text-align:center;'
-    +'  margin:4px 0;'
-    +'}'
-    +'@media print{'
-    +'  body{width:72mm}'
-    +'  .no-print{display:none}'
-    +'}'
-    +'</style>'
-    +'</head><body>'
-    +'<pre>'+bodyText.replace(/TOTAL:.*/,function(m){return '';})+'</pre>'
-    +'<div class="total">TOTAL: Rs.'+Math.round(tx.totalAmount).toLocaleString('en-IN')+'</div>'
-    +'<pre>'+dashes()+'\nThank you for visiting!\n         See you again :)</pre>'
-    +'<div class="no-print" style="text-align:center;margin-top:12px">'
-    +'<button onclick="window.print()" style="padding:8px 20px;font-size:13px;cursor:pointer;background:#BA7517;color:#fff;border:none;border-radius:6px">🖨️ Print</button>'
-    +'</div>'
-    +'<scr'+'ipt>'
-    +'window.onload=function(){'
-    +'  // Auto-print after 400ms so content renders first\n'
-    +'  setTimeout(function(){window.print();},400);'
-    +'};'
-    +'<\/scr'+'ipt>'
-    +'</body></html>'
-  );
-
-  // Rebuild clean receipt without duplicate footer
-  const mainLines=lines.slice(0,lines.length-3); // remove last 3 (dashes+thanks+seeyou)
-  const preText=mainLines.join('\n');
-  w.document.body.innerHTML=
-    '<pre style="font-family:\'Courier New\',Courier,monospace;font-size:12px;line-height:1.5;white-space:pre-wrap">'+preText+'</pre>'
-    +'<div style="font-family:\'Courier New\',Courier,monospace;font-size:15px;font-weight:bold;text-align:center;margin:3px 0;letter-spacing:1px">TOTAL: Rs.'+Math.round(tx.totalAmount).toLocaleString('en-IN')+'</div>'
-    +'<pre style="font-family:\'Courier New\',Courier,monospace;font-size:12px;line-height:1.5;white-space:pre-wrap">'+dashes()+'\n'+center('Thank you for visiting!')+'\n'+center('See you again :)')+'</pre>'
-    +'<div class="no-print" style="text-align:center;margin-top:14px;padding-bottom:8px">'
-    +'<button onclick="window.print()" style="padding:8px 22px;font-size:13px;cursor:pointer;background:#BA7517;color:#fff;border:none;border-radius:6px;font-family:inherit">🖨️ Print Receipt</button>'
-    +'</div>'
-    +'<style>'
-    +'@page{size:80mm auto;margin:4mm 4mm 8mm 4mm}'
-    +'body{width:72mm;margin:0 auto;background:#fff;color:#000}'
-    +'.no-print{} @media print{.no-print{display:none}}'
-    +'</style>'
-    +'<scr'+'ipt>setTimeout(function(){window.print();},400);<\/scr'+'ipt>';
+    +'body{font-family:"Courier New",Courier,monospace;font-size:12.5px;line-height:1.55;'
+    +'  width:76mm;margin:0 auto;background:#fff;color:#000}'
+    +'pre{font-family:inherit;font-size:inherit;line-height:inherit;white-space:pre;word-break:normal}'
+    +'.total-line{font-size:16px;font-weight:900;text-align:center;letter-spacing:1px;'
+    +'  padding:3px 0;border-top:2px solid #000;border-bottom:2px solid #000;margin:2px 0}'
+    +'.print-btn{display:block;margin:14px auto 0;padding:9px 28px;background:#BA7517;color:#fff;'
+    +'  border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}'
+    +'@media print{.print-btn{display:none}}'
+    +'</style></head><body>'
+    +'<pre id="top"></pre>'
+    +'<div class="total-line">TOTAL: Rs.'+Math.round(tx.totalAmount).toLocaleString('en-IN')+'</div>'
+    +'<pre id="bot"></pre>'
+    +'<button class="print-btn" onclick="window.print()">🖨️ Print</button>'
+    +'<script>'
+    // Build top = everything before TOTAL line, bot = footer
+    +'var lines='+JSON.stringify(receipt.split('\n'))+';'
+    +'var ti=lines.findIndex(function(l){return l.indexOf("TOTAL:")>-1;});'
+    +'var equalLine='+JSON.stringify(line('═'))+';'
+    +'document.getElementById("top").textContent=lines.slice(0,lines.indexOf(equalLine)).join("\\n");'
+    +'document.getElementById("bot").textContent=lines.slice(lines.lastIndexOf(equalLine)+1).join("\\n");'
+    +'setTimeout(function(){window.print();},500);'
+    +'<\/script>'
+    +'</body></html>');
   w.document.close();
 }
+
 
 // ═══ MENU ═══
 function renderMenu(){
@@ -949,7 +926,7 @@ function renderSettings(){
       <button class="btn-sec" style="margin-top:0;border-color:#185FA5;color:#185FA5" onclick="exportAllCSV()">📊 Export All Transactions</button>
       <button class="btn-sec" style="margin-top:8px;border-color:#C0392B;color:#C0392B" onclick="requirePIN('Clear All Data',confirmClearData)">⚠ Clear All Data</button>
     </div>
-    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.8</strong><br>Firebase · Auto ID · WhatsApp · Reset+Reservations · Edit Timer · Nav Lock<br>Total transactions: <strong>${txns.length}</strong></div>
+    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.9</strong><br>Firebase · Auto ID · WhatsApp · Reset+Reservations · Edit Timer · Nav Lock<br>Total transactions: <strong>${txns.length}</strong></div>
   </div>`;
 }
 function saveSettings(){settings.cafeName=document.getElementById('s-name').value.trim()||'The Playhouse';settings.address=document.getElementById('s-addr').value.trim();settings.ratePerHour=parseFloat(document.getElementById('s-rate').value)||99;settings.pin=document.getElementById('s-pin').value;settings.largeBillThreshold=parseFloat(document.getElementById('s-threshold').value)||500;saveAll();renderStats();const btn=event.target;btn.textContent='✓ Saved!';btn.style.background='#27AE60';setTimeout(()=>{btn.textContent='Save All Settings';btn.style.background='';},1800);}
