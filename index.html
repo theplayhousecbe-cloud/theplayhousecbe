@@ -283,30 +283,62 @@ function updateResetPreview(){
   const days=parseInt(document.getElementById('reset-days')?.value)||0,hours=parseInt(document.getElementById('reset-hours')?.value)||0;
   const totalMs=(days*24+hours)*60*60*1000,cutoff=Date.now()-totalMs;
   const toDelete=txns.filter(t=>t.t1>=cutoff);
+  const rsvCount=seats.filter(s=>s.blocked).length;
   const countEl=document.getElementById('reset-count'),labelEl=document.getElementById('reset-label'),rangeEl=document.getElementById('reset-range'),btnEl=document.getElementById('reset-confirm-btn');
   if(countEl)countEl.textContent=toDelete.length;
   if(labelEl){if(days===0&&hours===0){labelEl.textContent='Enter days or hours above';}else{const ts=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');labelEl.textContent=`transaction${toDelete.length!==1?'s':''} from the last ${ts} will be deleted`;}}
   if(rangeEl&&totalMs>0){const from=new Date(cutoff).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});rangeEl.textContent=`From ${from} → Now`;}else if(rangeEl){rangeEl.textContent='';}
-  if(btnEl){const can=totalMs>0&&toDelete.length>0;btnEl.disabled=!can;btnEl.style.opacity=can?'1':'0.4';btnEl.style.cursor=can?'pointer':'not-allowed';}
+  // ✅ Enable button if there are transactions OR reservations to clear
+  if(btnEl){const can=totalMs>0&&(toDelete.length>0||rsvCount>0);btnEl.disabled=!can;btnEl.style.opacity=can?'1':'0.4';btnEl.style.cursor=can?'pointer':'not-allowed';
+    btnEl.textContent=toDelete.length>0?`🗑 Delete These Transactions`:(rsvCount>0?`🗑 Clear ${rsvCount} Reservation${rsvCount>1?'s':''}`:btnEl.textContent);}
 }
 function confirmReset(){
   const days=parseInt(document.getElementById('reset-days')?.value)||0,hours=parseInt(document.getElementById('reset-hours')?.value)||0;
   const totalMs=(days*24+hours)*60*60*1000,cutoff=Date.now()-totalMs;
   const toDelete=txns.filter(t=>t.t1>=cutoff);
-  if(toDelete.length===0){alert('No transactions in that range.');return;}
-  const ts=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');
   const rsvCount=seats.filter(s=>s.blocked).length;
-  showModal(`<h3 style="text-align:center;color:#C0392B">⚠ Final Confirmation</h3><div style="text-align:center;margin:16px 0"><div style="font-family:monospace;font-size:48px;font-weight:700;color:#C0392B;line-height:1">${toDelete.length}</div><div style="font-size:13px;color:#555;margin-top:8px">transaction${toDelete.length!==1?'s':''} will be permanently deleted</div><div style="font-size:11px;color:#aaa;background:#f7f7f7;border-radius:6px;padding:6px 10px;display:inline-block;margin-top:8px">Last ${ts}</div></div>${rsvCount>0?`<div class="hint-box" style="text-align:center">+ ${rsvCount} reservation${rsvCount>1?'s':''} will be cleared</div>`:''}<div class="warn-box" style="text-align:center">This <strong>cannot be undone.</strong></div><button class="btn-pri red" style="margin-top:0" onclick="doReset(${cutoff})">Yes — Delete ${toDelete.length} Transaction${toDelete.length!==1?'s':''}</button><button class="btn-sec" onclick="showResetModal()">← Go Back</button>`);
+  const ts=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');
+  // ✅ Two-step: first confirm transactions, then separately confirm reservations
+  if(toDelete.length>0){
+    showModal(`<h3 style="text-align:center;color:#C0392B">⚠ Confirm Delete Transactions</h3>
+      <div style="text-align:center;margin:16px 0">
+        <div style="font-family:monospace;font-size:48px;font-weight:700;color:#C0392B;line-height:1">${toDelete.length}</div>
+        <div style="font-size:13px;color:#555;margin-top:8px">transaction${toDelete.length!==1?'s':''} will be permanently deleted</div>
+        <div style="font-size:11px;color:#aaa;background:#f7f7f7;border-radius:6px;padding:6px 10px;display:inline-block;margin-top:8px">Last ${ts}</div>
+      </div>
+      <div class="warn-box" style="text-align:center">This <strong>cannot be undone.</strong></div>
+      <button class="btn-pri red" style="margin-top:0" onclick="${rsvCount>0?`confirmResetReservations(${cutoff})`:`doReset(${cutoff},false)`}">Yes — Delete ${toDelete.length} Transaction${toDelete.length!==1?'s':''}</button>
+      <button class="btn-sec" onclick="showResetModal()">← Go Back</button>`);
+  } else if(rsvCount>0){
+    // No transactions in range — jump straight to reservation confirmation
+    confirmResetReservations(cutoff);
+  }
+}
+function confirmResetReservations(cutoff){
+  const rsvCount=seats.filter(s=>s.blocked).length;
+  const rsvList=seats.filter(s=>s.blocked).map(s=>`<div style="display:flex;justify-content:space-between;font-size:11px;color:#555;padding:2px 0;border-bottom:1px solid #f0f0f0"><span style="font-weight:500">${(s.blockInfo?.name)||'—'}</span><span style="color:#185FA5">${s.blockInfo?.date?new Date(s.blockInfo.date+'T00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''} ${s.blockInfo?.time||''}</span></div>`).join('');
+  showModal(`<h3 style="text-align:center;color:#185FA5">🔒 Clear Reservations?</h3>
+    <div style="text-align:center;margin:14px 0 10px">
+      <div style="font-family:monospace;font-size:48px;font-weight:700;color:#185FA5;line-height:1">${rsvCount}</div>
+      <div style="font-size:13px;color:#555;margin-top:6px">reservation${rsvCount!==1?'s':''} will be permanently removed</div>
+    </div>
+    <div style="max-height:140px;overflow-y:auto;background:#f7f7f7;border-radius:8px;padding:8px 12px;margin-bottom:12px">${rsvList}</div>
+    <div class="warn-box" style="text-align:center">Reserved seats will become <strong>free</strong>. Cannot be undone.</div>
+    <button class="btn-pri blue" style="margin-top:0" onclick="doReset(${cutoff},true)">Yes — Clear All Reservations</button>
+    <button class="btn-sec" style="border-color:#C0392B;color:#C0392B" onclick="doReset(${cutoff},false)">Skip — Keep Reservations</button>
+    <button class="btn-sec" onclick="showResetModal()">← Go Back</button>`);
 }
 
 // ═══════════════════════════════════════════════════════════════
 // FIX 1: doReset now also clears all blocked/reserved seats
 // ═══════════════════════════════════════════════════════════════
-function doReset(cutoff){
+function doReset(cutoff, clearReservations){
   const before=txns.length;txns=txns.filter(t=>t.t1<cutoff);const deleted=before-txns.length;
-  // Clear all reservations when resetting
-  const rsvCleared=seats.filter(s=>s.blocked).length;
-  seats=seats.map(s=>s.blocked?{...s,blocked:false,blockInfo:null}:s);
+  let rsvCleared=0;
+  if(clearReservations){
+    rsvCleared=seats.filter(s=>s.blocked).length;
+    seats=seats.map(s=>s.blocked?{...s,blocked:false,blockInfo:null}:s);
+  }
   saveAll();closeModal();renderStats();
   if(currentView==='report')renderReport();else if(currentView==='floor')renderFloor();
   showModal(`<div style="text-align:center;padding:14px 0"><div style="font-size:52px;margin-bottom:12px">✅</div><h3 style="font-size:17px">Reset Complete</h3><p style="font-size:13px;color:#888;margin-top:10px;line-height:1.7"><span style="font-family:monospace;font-size:22px;font-weight:700;color:#C0392B;display:block">${deleted}</span>transaction${deleted!==1?'s':''} deleted.<br>${rsvCleared>0?`<span style="font-size:12px;color:#185FA5">${rsvCleared} reservation${rsvCleared>1?'s':''} cleared.</span><br>`:''}<strong>${txns.length}</strong> remaining.</p></div><button class="btn-pri grn" onclick="closeModal()">Done</button>`);
@@ -757,7 +789,7 @@ function renderSettings(){
       <button class="btn-sec" style="margin-top:0;border-color:#185FA5;color:#185FA5" onclick="exportAllCSV()">📊 Export All Transactions</button>
       <button class="btn-sec" style="margin-top:8px;border-color:#C0392B;color:#C0392B" onclick="requirePIN('Clear All Data',confirmClearData)">⚠ Clear All Data</button>
     </div>
-    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.5</strong><br>Firebase · Auto ID · WhatsApp · Reset+Reservations · Edit Timer · Nav Lock<br>Total transactions: <strong>${txns.length}</strong></div>
+    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.6</strong><br>Firebase · Auto ID · WhatsApp · Reset+Reservations · Edit Timer · Nav Lock<br>Total transactions: <strong>${txns.length}</strong></div>
   </div>`;
 }
 function saveSettings(){settings.cafeName=document.getElementById('s-name').value.trim()||'The Playhouse';settings.address=document.getElementById('s-addr').value.trim();settings.ratePerHour=parseFloat(document.getElementById('s-rate').value)||99;settings.pin=document.getElementById('s-pin').value;settings.largeBillThreshold=parseFloat(document.getElementById('s-threshold').value)||500;saveAll();renderStats();const btn=event.target;btn.textContent='✓ Saved!';btn.style.background='#27AE60';setTimeout(()=>{btn.textContent='Save All Settings';btn.style.background='';},1800);}
