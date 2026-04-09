@@ -259,90 +259,144 @@ function markExported(date){settings.lastExportDate=date;saveAll();checkExportBa
 setInterval(()=>{const today=todayStr();if(today!==_lastDateStr){const prev=_lastDateStr;_lastDateStr=today;const ptx=txnsForDate(prev);if(ptx.length>0&&settings.lastExportDate!==prev){const rev=ptx.reduce((s,t)=>s+t.totalAmount,0);showModal(`<div style="text-align:center;margin-bottom:14px"><div style="font-size:32px;margin-bottom:8px">🌙</div><h3>New day — export yesterday?</h3></div><div class="hint-box">${ptx.length} sessions · ${inr(rev)} revenue</div><button class="btn-pri" onclick="exportCSV('${prev}');markExported('${prev}');closeModal()">📊 Export CSV</button><button class="btn-pri grn" onclick="exportPDF('${prev}');markExported('${prev}');closeModal()">📄 Export PDF</button><button class="btn-sec" onclick="markExported('${prev}');closeModal()">Skip</button>`);}}},60000);
 
 // ═══ RESET ═══
+let _resetCutoff=0; // stored globally so onclick strings never embed large numbers or nested templates
+
 function openReset(){
   if(_receiptActive){showNavLockToast();return;}
   requirePIN('Reset Data',showResetModal);
 }
 function showResetModal(){
   const rsvCount=seats.filter(s=>s.blocked).length;
-  showModal(`<h3 style="color:#C0392B">🗑 Reset Transactions</h3>
-    <p style="font-size:12px;color:#888;margin:-8px 0 16px;line-height:1.6">Enter how many <strong>days</strong> and <strong>hours</strong> of recent data to delete.</p>
+  showModal(`<h3 style="color:#C0392B">🗑 Reset Data</h3>
+    <p style="font-size:12px;color:#888;margin:-8px 0 16px;line-height:1.6">Enter how many <strong>days</strong> and <strong>hours</strong> of recent transactions to delete.</p>
     <div class="reset-inputs">
       <div class="reset-field"><label>Days</label><input type="number" id="reset-days" min="0" max="365" value="0" oninput="updateResetPreview()"></div>
       <div style="display:flex;align-items:center;padding-top:22px;color:#bbb;font-size:24px">+</div>
       <div class="reset-field"><label>Hours</label><input type="number" id="reset-hours" min="0" max="23" value="0" oninput="updateResetPreview()"></div>
     </div>
-    <div class="reset-preview"><div class="reset-preview-count" id="reset-count">0</div><div class="reset-preview-label" id="reset-label">Enter days or hours above</div><div class="reset-preview-range" id="reset-range"></div></div>
-    ${rsvCount>0?`<div class="hint-box" style="margin-bottom:8px">⚠ <strong>${rsvCount} reservation${rsvCount>1?'s':''}</strong> will also be cleared.</div>`:''}
+    <div class="reset-preview">
+      <div class="reset-preview-count" id="reset-count">0</div>
+      <div class="reset-preview-label" id="reset-label">Enter days or hours above</div>
+      <div class="reset-preview-range" id="reset-range"></div>
+    </div>
+    ${rsvCount>0
+      ? '<div class="hint-box" style="margin-bottom:8px">⚠ <strong>' + rsvCount + ' reservation' + (rsvCount>1?'s':'') + '</strong> currently active — you can clear these too.</div>'
+      : ''}
     <div class="warn-box">⚠ Permanently deletes from Firebase.</div>
     <button class="btn-sec" style="border-color:#185FA5;color:#185FA5;margin-top:0" onclick="exportAllCSV()">📊 Export Backup First</button>
-    <button class="btn-pri red" id="reset-confirm-btn" onclick="confirmReset()" disabled style="opacity:.4;cursor:not-allowed">🗑 Delete These Transactions</button>
+    <button class="btn-pri red" id="reset-confirm-btn" onclick="confirmReset()" disabled style="opacity:.4;cursor:not-allowed">🗑 Proceed</button>
+    ${rsvCount>0
+      ? '<button class="btn-pri blue" style="margin-top:6px" onclick="confirmClearReservationsOnly()">🔒 Clear Reservations Only</button>'
+      : ''}
     <button class="btn-sec" onclick="closeModal()">Cancel</button>`);
+  // Auto-run preview so existing values show correct state immediately
+  setTimeout(updateResetPreview, 30);
 }
 function updateResetPreview(){
-  const days=parseInt(document.getElementById('reset-days')?.value)||0,hours=parseInt(document.getElementById('reset-hours')?.value)||0;
-  const totalMs=(days*24+hours)*60*60*1000,cutoff=Date.now()-totalMs;
-  const toDelete=txns.filter(t=>t.t1>=cutoff);
-  const rsvCount=seats.filter(s=>s.blocked).length;
+  const days=parseInt(document.getElementById('reset-days')?.value)||0;
+  const hours=parseInt(document.getElementById('reset-hours')?.value)||0;
+  const totalMs=(days*24+hours)*60*60*1000;
+  _resetCutoff=Date.now()-totalMs;
+  const toDelete=txns.filter(t=>t.t1>=_resetCutoff);
   const countEl=document.getElementById('reset-count'),labelEl=document.getElementById('reset-label'),rangeEl=document.getElementById('reset-range'),btnEl=document.getElementById('reset-confirm-btn');
   if(countEl)countEl.textContent=toDelete.length;
-  if(labelEl){if(days===0&&hours===0){labelEl.textContent='Enter days or hours above';}else{const ts=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');labelEl.textContent=`transaction${toDelete.length!==1?'s':''} from the last ${ts} will be deleted`;}}
-  if(rangeEl&&totalMs>0){const from=new Date(cutoff).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});rangeEl.textContent=`From ${from} → Now`;}else if(rangeEl){rangeEl.textContent='';}
-  // ✅ Enable button if there are transactions OR reservations to clear
-  if(btnEl){const can=totalMs>0&&(toDelete.length>0||rsvCount>0);btnEl.disabled=!can;btnEl.style.opacity=can?'1':'0.4';btnEl.style.cursor=can?'pointer':'not-allowed';
-    btnEl.textContent=toDelete.length>0?`🗑 Delete These Transactions`:(rsvCount>0?`🗑 Clear ${rsvCount} Reservation${rsvCount>1?'s':''}`:btnEl.textContent);}
-}
-function confirmReset(){
-  const days=parseInt(document.getElementById('reset-days')?.value)||0,hours=parseInt(document.getElementById('reset-hours')?.value)||0;
-  const totalMs=(days*24+hours)*60*60*1000,cutoff=Date.now()-totalMs;
-  const toDelete=txns.filter(t=>t.t1>=cutoff);
-  const rsvCount=seats.filter(s=>s.blocked).length;
-  const ts=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');
-  // ✅ Two-step: first confirm transactions, then separately confirm reservations
-  if(toDelete.length>0){
-    showModal(`<h3 style="text-align:center;color:#C0392B">⚠ Confirm Delete Transactions</h3>
-      <div style="text-align:center;margin:16px 0">
-        <div style="font-family:monospace;font-size:48px;font-weight:700;color:#C0392B;line-height:1">${toDelete.length}</div>
-        <div style="font-size:13px;color:#555;margin-top:8px">transaction${toDelete.length!==1?'s':''} will be permanently deleted</div>
-        <div style="font-size:11px;color:#aaa;background:#f7f7f7;border-radius:6px;padding:6px 10px;display:inline-block;margin-top:8px">Last ${ts}</div>
-      </div>
-      <div class="warn-box" style="text-align:center">This <strong>cannot be undone.</strong></div>
-      <button class="btn-pri red" style="margin-top:0" onclick="${rsvCount>0?`confirmResetReservations(${cutoff})`:`doReset(${cutoff},false)`}">Yes — Delete ${toDelete.length} Transaction${toDelete.length!==1?'s':''}</button>
-      <button class="btn-sec" onclick="showResetModal()">← Go Back</button>`);
-  } else if(rsvCount>0){
-    // No transactions in range — jump straight to reservation confirmation
-    confirmResetReservations(cutoff);
+  if(labelEl){
+    if(days===0&&hours===0){labelEl.textContent='Enter days or hours above';}
+    else{
+      const ts=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');
+      labelEl.textContent='transaction'+(toDelete.length!==1?'s':'')+' from the last '+ts+' will be deleted';
+    }
+  }
+  if(rangeEl&&totalMs>0){
+    rangeEl.textContent='From '+new Date(_resetCutoff).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+' → Now';
+  } else if(rangeEl){rangeEl.textContent='';}
+  if(btnEl){
+    const can=totalMs>0&&toDelete.length>0;
+    btnEl.disabled=!can;btnEl.style.opacity=can?'1':'0.4';btnEl.style.cursor=can?'pointer':'not-allowed';
+    btnEl.textContent='🗑 Delete '+toDelete.length+' Transaction'+(toDelete.length!==1?'s':'');
   }
 }
-function confirmResetReservations(cutoff){
+
+// Step 1: confirm transaction delete
+function confirmReset(){
+  const toDelete=txns.filter(t=>t.t1>=_resetCutoff);
+  if(!toDelete.length){alert('No transactions in that range.');return;}
   const rsvCount=seats.filter(s=>s.blocked).length;
-  const rsvList=seats.filter(s=>s.blocked).map(s=>`<div style="display:flex;justify-content:space-between;font-size:11px;color:#555;padding:2px 0;border-bottom:1px solid #f0f0f0"><span style="font-weight:500">${(s.blockInfo?.name)||'—'}</span><span style="color:#185FA5">${s.blockInfo?.date?new Date(s.blockInfo.date+'T00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''} ${s.blockInfo?.time||''}</span></div>`).join('');
-  showModal(`<h3 style="text-align:center;color:#185FA5">🔒 Clear Reservations?</h3>
-    <div style="text-align:center;margin:14px 0 10px">
-      <div style="font-family:monospace;font-size:48px;font-weight:700;color:#185FA5;line-height:1">${rsvCount}</div>
-      <div style="font-size:13px;color:#555;margin-top:6px">reservation${rsvCount!==1?'s':''} will be permanently removed</div>
-    </div>
-    <div style="max-height:140px;overflow-y:auto;background:#f7f7f7;border-radius:8px;padding:8px 12px;margin-bottom:12px">${rsvList}</div>
-    <div class="warn-box" style="text-align:center">Reserved seats will become <strong>free</strong>. Cannot be undone.</div>
-    <button class="btn-pri blue" style="margin-top:0" onclick="doReset(${cutoff},true)">Yes — Clear All Reservations</button>
-    <button class="btn-sec" style="border-color:#C0392B;color:#C0392B" onclick="doReset(${cutoff},false)">Skip — Keep Reservations</button>
-    <button class="btn-sec" onclick="showResetModal()">← Go Back</button>`);
+  const fromStr=new Date(_resetCutoff).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  let html='<h3 style="text-align:center;color:#C0392B">⚠ Confirm Delete</h3>'
+    +'<div style="text-align:center;margin:14px 0">'
+    +'<div style="font-family:monospace;font-size:52px;font-weight:700;color:#C0392B;line-height:1">'+toDelete.length+'</div>'
+    +'<div style="font-size:13px;color:#555;margin-top:8px">transaction'+(toDelete.length!==1?'s':'')+' will be permanently deleted</div>'
+    +'<div style="font-size:11px;color:#aaa;background:#f7f7f7;border-radius:6px;padding:5px 10px;display:inline-block;margin-top:7px">From '+fromStr+' → Now</div>'
+    +'</div>'
+    +'<div class="warn-box" style="text-align:center">Cannot be undone.</div>';
+  if(rsvCount>0){
+    html+='<button class="btn-pri red" style="margin-top:0" onclick="doResetTxns();confirmClearReservationsOnly()">🗑 Delete + Also Clear '+rsvCount+' Reservation'+(rsvCount>1?'s':'')+'</button>'
+         +'<button class="btn-sec" style="border-color:#C0392B;color:#C0392B;margin-top:6px" onclick="doResetTxns()">Delete Transactions Only</button>';
+  } else {
+    html+='<button class="btn-pri red" style="margin-top:0" onclick="doResetTxns()">Yes — Delete</button>';
+  }
+  html+='<button class="btn-sec" onclick="showResetModal()">← Go Back</button>';
+  showModal(html);
+}
+
+// Step 2 (optional): confirm reservation clear
+function confirmClearReservationsOnly(){
+  const rsvCount=seats.filter(s=>s.blocked).length;
+  if(!rsvCount){showModal('<h3>No Reservations</h3><p style="color:#888;font-size:13px">There are no active reservations to clear.</p><button class="btn-sec" onclick="closeModal()">OK</button>');return;}
+  let rsvList='';
+  seats.filter(s=>s.blocked).forEach(function(s){
+    const bi=s.blockInfo||{};
+    const dateStr=bi.date?new Date(bi.date+'T00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
+    rsvList+='<div style="display:flex;justify-content:space-between;font-size:12px;color:#333;padding:5px 0;border-bottom:1px solid #eee">'
+      +'<span style="font-weight:500">'+(bi.name||'—')+'</span>'
+      +'<span style="color:#185FA5">'+dateStr+(bi.time?' '+bi.time:'')+'</span>'
+      +'</div>';
+  });
+  showModal('<h3 style="text-align:center;color:#185FA5">🔒 Clear All Reservations?</h3>'
+    +'<div style="text-align:center;margin:10px 0 14px">'
+    +'<div style="font-family:monospace;font-size:52px;font-weight:700;color:#185FA5;line-height:1">'+rsvCount+'</div>'
+    +'<div style="font-size:13px;color:#555;margin-top:6px">reservation'+(rsvCount!==1?'s':'')+' will be removed</div>'
+    +'</div>'
+    +'<div style="max-height:160px;overflow-y:auto;background:#f7f7f7;border-radius:8px;padding:8px 12px;margin-bottom:12px">'+rsvList+'</div>'
+    +'<div class="warn-box" style="text-align:center">Reserved seats become <strong>free</strong>. Cannot be undone.</div>'
+    +'<button class="btn-pri blue" style="margin-top:0" onclick="doClearReservations()">Yes — Clear All Reservations</button>'
+    +'<button class="btn-sec" onclick="closeModal()">Keep Reservations</button>');
+}
+
+// Actual execution functions — no large numbers or logic in onclick strings
+function doResetTxns(){
+  const before=txns.length;
+  txns=txns.filter(t=>t.t1<_resetCutoff);
+  const deleted=before-txns.length;
+  saveAll();renderStats();
+  if(currentView==='report')renderReport();else if(currentView==='floor')renderFloor();
+  showModal('<div style="text-align:center;padding:14px 0">'
+    +'<div style="font-size:48px;margin-bottom:10px">✅</div>'
+    +'<h3>Transactions Deleted</h3>'
+    +'<p style="font-size:13px;color:#888;margin-top:10px;line-height:1.8">'
+    +'<span style="font-family:monospace;font-size:26px;font-weight:700;color:#C0392B;display:block">'+deleted+'</span>'
+    +'transaction'+(deleted!==1?'s':'')+' deleted.<br>'
+    +'<strong>'+txns.length+'</strong> remaining.</p></div>'
+    +'<button class="btn-pri grn" onclick="closeModal()">Done</button>');
+}
+function doClearReservations(){
+  const rsvCleared=seats.filter(s=>s.blocked).length;
+  seats=seats.map(s=>s.blocked?Object.assign({},s,{blocked:false,blockInfo:null}):s);
+  saveAll();renderStats();
+  if(currentView==='floor')renderFloor();
+  showModal('<div style="text-align:center;padding:14px 0">'
+    +'<div style="font-size:48px;margin-bottom:10px">✅</div>'
+    +'<h3>Reservations Cleared</h3>'
+    +'<p style="font-size:13px;color:#888;margin-top:10px;line-height:1.8">'
+    +'<span style="font-family:monospace;font-size:26px;font-weight:700;color:#185FA5;display:block">'+rsvCleared+'</span>'
+    +'reservation'+(rsvCleared!==1?'s':'')+' removed.<br>Seats are now free.</p></div>'
+    +'<button class="btn-pri grn" onclick="closeModal()">Done</button>');
 }
 
 // ═══════════════════════════════════════════════════════════════
 // FIX 1: doReset now also clears all blocked/reserved seats
 // ═══════════════════════════════════════════════════════════════
-function doReset(cutoff, clearReservations){
-  const before=txns.length;txns=txns.filter(t=>t.t1<cutoff);const deleted=before-txns.length;
-  let rsvCleared=0;
-  if(clearReservations){
-    rsvCleared=seats.filter(s=>s.blocked).length;
-    seats=seats.map(s=>s.blocked?{...s,blocked:false,blockInfo:null}:s);
-  }
-  saveAll();closeModal();renderStats();
-  if(currentView==='report')renderReport();else if(currentView==='floor')renderFloor();
-  showModal(`<div style="text-align:center;padding:14px 0"><div style="font-size:52px;margin-bottom:12px">✅</div><h3 style="font-size:17px">Reset Complete</h3><p style="font-size:13px;color:#888;margin-top:10px;line-height:1.7"><span style="font-family:monospace;font-size:22px;font-weight:700;color:#C0392B;display:block">${deleted}</span>transaction${deleted!==1?'s':''} deleted.<br>${rsvCleared>0?`<span style="font-size:12px;color:#185FA5">${rsvCleared} reservation${rsvCleared>1?'s':''} cleared.</span><br>`:''}<strong>${txns.length}</strong> remaining.</p></div><button class="btn-pri grn" onclick="closeModal()">Done</button>`);
-}
 
 // ═══ FLOOR ═══
 function renderFloor(){
@@ -730,9 +784,115 @@ function printR(txId){
   const tx=txns.find(t=>t.id===txId);if(!tx)return;
   const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
   const ao=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
-  const aoRows=tx.addons&&tx.addons.length?`<tr><td colspan="2" style="padding:5px 0 2px;font-size:11px;color:#888">Food & Beverages</td></tr>${tx.addons.map(a=>`<tr><td>${a.name} ×${a.qty}</td><td style="text-align:right">Rs.${Math.round(a.price*a.qty).toLocaleString('en-IN')}</td></tr>`).join('')}`:'';
-  const w=window.open('','_blank','width=400,height=720');
-  w.document.write(`<html><head><title>Receipt</title><style>body{font-family:monospace;font-size:13px;width:290px;margin:auto;padding:20px}h2{text-align:center;font-size:17px;margin:0 0 2px}.sub{text-align:center;font-size:11px;color:#888;margin-bottom:12px}table{width:100%;border-collapse:collapse}td{padding:3px 0;border-bottom:1px solid #eee}hr{border:none;border-top:1px dashed #ccc;margin:10px 0}.big{font-size:18px;font-weight:bold}</style></head><body><h2>${settings.cafeName}</h2>${settings.address?`<p class="sub">${settings.address}</p>`:''}<p class="sub">${new Date(tx.t1).toLocaleString('en-IN')}</p><table><tr><td>Customer</td><td style="text-align:right">${tx.name}</td></tr><tr><td>Seats(${tx.persons})</td><td style="text-align:right;font-size:11px">${sl}</td></tr><tr><td>Duration</td><td style="text-align:right">${fmtMins(tx.t1-tx.t0)}</td></tr><tr><td>Rate</td><td style="text-align:right">Rs.${settings.ratePerHour}/hr/seat</td></tr><tr><td>Seat charge</td><td style="text-align:right">Rs.${Math.round(tx.seatCharge).toLocaleString('en-IN')}</td></tr>${aoRows}</table><hr><table><tr><td>Payment</td><td style="text-align:right">${tx.method.toUpperCase()}</td></tr></table><hr><table><tr class="big"><td>TOTAL</td><td style="text-align:right">Rs.${Math.round(tx.totalAmount).toLocaleString('en-IN')}</td></tr></table><p style="text-align:center;font-size:11px;margin-top:16px;color:#aaa">Thank you for visiting! 🎲</p><scr`+`ipt>window.onload=function(){window.print();window.close();}<\/scr`+`ipt></body></html>`);
+  const dur=fmtMins(tx.t1-tx.t0);
+  const inTime=new Date(tx.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+  const outTime=new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+  const dateStr=new Date(tx.t1).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+  // Helper: pad two strings to fill 42 chars total (fits 80mm at 12px monospace)
+  function row(left,right){
+    const l=String(left),r=String(right);
+    const pad=Math.max(1,42-l.length-r.length);
+    return l+' '.repeat(pad)+r;
+  }
+  function dashes(){return '-'.repeat(42);}
+  function center(txt){const p=Math.max(0,Math.floor((42-txt.length)/2));return ' '.repeat(p)+txt;}
+
+  let lines=[];
+  lines.push(center(settings.cafeName));
+  if(settings.address)lines.push(center(settings.address));
+  lines.push(center(dateStr));
+  lines.push(dashes());
+  lines.push(row('Customer:',tx.name));
+  lines.push(row('Seats ('+tx.persons+'p):',sl));
+  lines.push(row('In:',inTime));
+  lines.push(row('Out:',outTime));
+  lines.push(row('Duration:',dur));
+  lines.push(row('Rate:','Rs.'+settings.ratePerHour+'/hr/seat'));
+  lines.push(dashes());
+  lines.push(row('Seat Charge','Rs.'+Math.round(tx.seatCharge).toLocaleString('en-IN')));
+  if(tx.addons&&tx.addons.length){
+    lines.push('Food & Beverages:');
+    tx.addons.forEach(a=>{
+      lines.push('  '+row(a.name+' x'+a.qty,'Rs.'+Math.round(a.price*a.qty).toLocaleString('en-IN')));
+    });
+  }
+  lines.push(dashes());
+  lines.push(row('Payment',tx.method.toUpperCase()));
+  lines.push(dashes());
+  // Big total line
+  const totalStr='TOTAL: Rs.'+Math.round(tx.totalAmount).toLocaleString('en-IN');
+  lines.push(center(totalStr));
+  lines.push(dashes());
+  lines.push(center('Thank you for visiting!'));
+  lines.push(center('See you again :)'));
+
+  const bodyText=lines.join('\n');
+
+  const w=window.open('','_blank','width=320,height=600');
+  w.document.write(
+    '<!DOCTYPE html><html><head><title>Receipt</title>'
+    +'<style>'
+    +'@page{size:80mm auto;margin:4mm 4mm 8mm 4mm}'
+    +'*{box-sizing:border-box;margin:0;padding:0}'
+    +'body{'
+    +'  font-family:"Courier New",Courier,monospace;'
+    +'  font-size:12px;'
+    +'  line-height:1.5;'
+    +'  width:72mm;'
+    +'  margin:0 auto;'
+    +'  color:#000;'
+    +'  background:#fff;'
+    +'}'
+    +'pre{'
+    +'  font-family:inherit;'
+    +'  font-size:inherit;'
+    +'  white-space:pre-wrap;'
+    +'  word-break:break-all;'
+    +'}'
+    +'.total{'
+    +'  font-size:15px;'
+    +'  font-weight:bold;'
+    +'  text-align:center;'
+    +'  margin:4px 0;'
+    +'}'
+    +'@media print{'
+    +'  body{width:72mm}'
+    +'  .no-print{display:none}'
+    +'}'
+    +'</style>'
+    +'</head><body>'
+    +'<pre>'+bodyText.replace(/TOTAL:.*/,function(m){return '';})+'</pre>'
+    +'<div class="total">TOTAL: Rs.'+Math.round(tx.totalAmount).toLocaleString('en-IN')+'</div>'
+    +'<pre>'+dashes()+'\nThank you for visiting!\n         See you again :)</pre>'
+    +'<div class="no-print" style="text-align:center;margin-top:12px">'
+    +'<button onclick="window.print()" style="padding:8px 20px;font-size:13px;cursor:pointer;background:#BA7517;color:#fff;border:none;border-radius:6px">🖨️ Print</button>'
+    +'</div>'
+    +'<scr'+'ipt>'
+    +'window.onload=function(){'
+    +'  // Auto-print after 400ms so content renders first\n'
+    +'  setTimeout(function(){window.print();},400);'
+    +'};'
+    +'<\/scr'+'ipt>'
+    +'</body></html>'
+  );
+
+  // Rebuild clean receipt without duplicate footer
+  const mainLines=lines.slice(0,lines.length-3); // remove last 3 (dashes+thanks+seeyou)
+  const preText=mainLines.join('\n');
+  w.document.body.innerHTML=
+    '<pre style="font-family:\'Courier New\',Courier,monospace;font-size:12px;line-height:1.5;white-space:pre-wrap">'+preText+'</pre>'
+    +'<div style="font-family:\'Courier New\',Courier,monospace;font-size:15px;font-weight:bold;text-align:center;margin:3px 0;letter-spacing:1px">TOTAL: Rs.'+Math.round(tx.totalAmount).toLocaleString('en-IN')+'</div>'
+    +'<pre style="font-family:\'Courier New\',Courier,monospace;font-size:12px;line-height:1.5;white-space:pre-wrap">'+dashes()+'\n'+center('Thank you for visiting!')+'\n'+center('See you again :)')+'</pre>'
+    +'<div class="no-print" style="text-align:center;margin-top:14px;padding-bottom:8px">'
+    +'<button onclick="window.print()" style="padding:8px 22px;font-size:13px;cursor:pointer;background:#BA7517;color:#fff;border:none;border-radius:6px;font-family:inherit">🖨️ Print Receipt</button>'
+    +'</div>'
+    +'<style>'
+    +'@page{size:80mm auto;margin:4mm 4mm 8mm 4mm}'
+    +'body{width:72mm;margin:0 auto;background:#fff;color:#000}'
+    +'.no-print{} @media print{.no-print{display:none}}'
+    +'</style>'
+    +'<scr'+'ipt>setTimeout(function(){window.print();},400);<\/scr'+'ipt>';
   w.document.close();
 }
 
@@ -789,7 +949,7 @@ function renderSettings(){
       <button class="btn-sec" style="margin-top:0;border-color:#185FA5;color:#185FA5" onclick="exportAllCSV()">📊 Export All Transactions</button>
       <button class="btn-sec" style="margin-top:8px;border-color:#C0392B;color:#C0392B" onclick="requirePIN('Clear All Data',confirmClearData)">⚠ Clear All Data</button>
     </div>
-    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.6</strong><br>Firebase · Auto ID · WhatsApp · Reset+Reservations · Edit Timer · Nav Lock<br>Total transactions: <strong>${txns.length}</strong></div>
+    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v2.8</strong><br>Firebase · Auto ID · WhatsApp · Reset+Reservations · Edit Timer · Nav Lock<br>Total transactions: <strong>${txns.length}</strong></div>
   </div>`;
 }
 function saveSettings(){settings.cafeName=document.getElementById('s-name').value.trim()||'The Playhouse';settings.address=document.getElementById('s-addr').value.trim();settings.ratePerHour=parseFloat(document.getElementById('s-rate').value)||99;settings.pin=document.getElementById('s-pin').value;settings.largeBillThreshold=parseFloat(document.getElementById('s-threshold').value)||500;saveAll();renderStats();const btn=event.target;btn.textContent='✓ Saved!';btn.style.background='#27AE60';setTimeout(()=>{btn.textContent='Save All Settings';btn.style.background='';},1800);}
