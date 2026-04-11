@@ -201,6 +201,8 @@ async function saveAll(){await db.collection("playhouse").doc("data").set({setti
 async function loadAll(){
   const doc=await db.collection("playhouse").doc("data").get();
   if(doc.exists){const d=doc.data();settings=d.settings||settings;seats=d.seats||seats;txns=d.txns||txns;menuItems=d.menuItems||menuItems;customerCounter=d.customerCounter||1;}
+  // migrate old default name
+  if(settings.cafeName==='My Café'||settings.cafeName==='My Cafe'||settings.cafeName==='The Playhouse'){settings.cafeName='THE PLAYHOUSE';}
 }
 
 function getGrpColor(gid){if(!groupColorMap[gid]){groupColorMap[gid]=GRP_COLORS[gcIdx%GRP_COLORS.length];gcIdx++;}return groupColorMap[gid];}
@@ -232,22 +234,113 @@ function unlockNav(){
 }
 
 // ═══ PIN ═══
-function requirePIN(title,callback){if(!settings.pin){callback();return;}_pinCallback=callback;_pinValue='';_pinActive=true;showModal(pinModalHTML(title,''));}
-function pinModalHTML(title,err){
-  const dots=Array.from({length:4},(_,i)=>`<div class="pin-dot${i<_pinValue.length?' filled':''}"></div>`).join('');
-  return `<h3 style="text-align:center">🔐 ${title}</h3><p style="font-size:12px;color:#888;text-align:center;margin:-8px 0 10px">Enter manager PIN</p><div class="pin-display">${dots}</div>${err?`<div style="text-align:center;color:#C0392B;font-size:12px;margin-bottom:8px">${err}</div>`:''}<div class="pin-grid">${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="pin-key" onclick="pinKey('${n}')">${n}</button>`).join('')}<button class="pin-key del" onclick="pinDel()">⌫</button><button class="pin-key" onclick="pinKey('0')">0</button><button class="pin-key ok" onclick="pinSubmit()">✓</button></div><button class="btn-sec" onclick="pinCancel()">Cancel</button>`;
+function requirePIN(title,callback){
+  if(!settings.pin){callback();return;}
+  _pinCallback=callback;_pinValue='';_pinActive=true;
+  showModal(pinModalHTML(title,''));
+  // attach keyboard listener
+  document.removeEventListener('keydown',_pinKeyHandler);
+  document.addEventListener('keydown',_pinKeyHandler);
 }
-function pinKey(d){if(_pinValue.length>=6)return;_pinValue+=d;const dots=document.getElementById('overlay').querySelectorAll('.pin-dot');dots.forEach((dot,i)=>dot.classList.toggle('filled',i<_pinValue.length));if(_pinValue.length>=4)setTimeout(pinSubmit,120);}
-function pinDel(){_pinValue=_pinValue.slice(0,-1);const dots=document.querySelectorAll('.pin-dot');dots.forEach((dot,i)=>dot.classList.toggle('filled',i<_pinValue.length));}
-function pinSubmit(){if(_pinValue===settings.pin){const cb=_pinCallback;_pinCallback=null;_pinActive=false;_pinValue='';closeModal();cb();}else{_pinValue='';const ov=document.getElementById('overlay');if(ov)ov.querySelector('.mbox').innerHTML=pinModalHTML('Access Denied','Incorrect PIN — try again');}}
-function pinCancel(){_pinCallback=null;_pinActive=false;_pinValue='';closeModal();}
+function _pinKeyHandler(e){
+  if(!_pinActive)return;
+  if(e.key>='0'&&e.key<='9'){e.preventDefault();pinKey(e.key);}
+  else if(e.key==='Backspace'){e.preventDefault();pinDel();}
+  else if(e.key==='Enter'){e.preventDefault();pinSubmit();}
+  else if(e.key==='Escape'){e.preventDefault();pinCancel();}
+}
+function pinModalHTML(title,err){
+  const dots=Array.from({length:4},(_,i)=>`
+    <div style="width:14px;height:14px;border-radius:50%;border:2px solid ${i<_pinValue.length?'#F0A500':'rgba(255,255,255,0.25)'};background:${i<_pinValue.length?'#F0A500':'transparent'};transition:all .2s;box-shadow:${i<_pinValue.length?'0 0 8px rgba(240,165,0,.6)':'none'}"></div>
+  `).join('');
+  const keys=[1,2,3,4,5,6,7,8,9].map(n=>`
+    <button onclick="pinKey('${n}')" style="padding:0;height:58px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.07);color:#fff;font-size:22px;font-weight:300;cursor:pointer;font-family:'SF Pro Display',system-ui,sans-serif;letter-spacing:.5px;transition:all .12s;backdrop-filter:blur(4px);"
+      onmouseover="this.style.background='rgba(240,165,0,0.18)';this.style.borderColor='rgba(240,165,0,0.5)'"
+      onmouseout="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(255,255,255,0.1)'"
+      onmousedown="this.style.transform='scale(0.93)';this.style.background='rgba(240,165,0,0.3)'"
+      onmouseup="this.style.transform='scale(1)'">${n}</button>
+  `).join('');
+  return `
+    <div style="margin:-22px;padding:28px 24px 24px;background:linear-gradient(160deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);border-radius:14px;color:#fff">
+      <div style="text-align:center;margin-bottom:6px">
+        <div style="width:44px;height:44px;background:linear-gradient(135deg,#F0A500,#c47d00);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:10px;box-shadow:0 4px 16px rgba(240,165,0,.3)">🔐</div>
+        <div style="font-size:16px;font-weight:600;letter-spacing:.3px;color:#fff">${title}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;letter-spacing:.3px">ENTER MANAGER PIN</div>
+      </div>
+      <div data-dots style="display:flex;justify-content:center;gap:14px;margin:20px 0 18px">
+        ${dots}
+      </div>
+      ${err?`<div style="text-align:center;color:#ff6b6b;font-size:12px;margin-bottom:10px;background:rgba(255,107,107,0.1);border-radius:6px;padding:6px">${err}</div>`:''}
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+        ${keys}
+        <button onclick="pinDel()" style="padding:0;height:58px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);font-size:18px;cursor:pointer;transition:all .12s"
+          onmouseover="this.style.background='rgba(255,255,255,0.1)'"
+          onmouseout="this.style.background='rgba(255,255,255,0.05)'"
+          onmousedown="this.style.transform='scale(0.93)'" onmouseup="this.style.transform='scale(1)'">⌫</button>
+        <button onclick="pinKey('0')" style="padding:0;height:58px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.07);color:#fff;font-size:22px;font-weight:300;cursor:pointer;font-family:'SF Pro Display',system-ui,sans-serif;transition:all .12s"
+          onmouseover="this.style.background='rgba(240,165,0,0.18)';this.style.borderColor='rgba(240,165,0,0.5)'"
+          onmouseout="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(255,255,255,0.1)'"
+          onmousedown="this.style.transform='scale(0.93)'" onmouseup="this.style.transform='scale(1)'">0</button>
+        <button onclick="pinSubmit()" style="padding:0;height:58px;border-radius:12px;border:none;background:linear-gradient(135deg,#F0A500,#c47d00);color:#fff;font-size:22px;cursor:pointer;transition:all .12s;box-shadow:0 4px 14px rgba(240,165,0,.35);font-weight:600"
+          onmouseover="this.style.boxShadow='0 6px 20px rgba(240,165,0,.55)'"
+          onmouseout="this.style.boxShadow='0 4px 14px rgba(240,165,0,.35)'"
+          onmousedown="this.style.transform='scale(0.93)'" onmouseup="this.style.transform='scale(1)'">✓</button>
+      </div>
+      <button onclick="pinCancel()" style="width:100%;padding:10px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;font-family:inherit;letter-spacing:.5px;transition:all .2s"
+        onmouseover="this.style.borderColor='rgba(255,255,255,0.3)';this.style.color='rgba(255,255,255,0.7)'"
+        onmouseout="this.style.borderColor='rgba(255,255,255,0.12)';this.style.color='rgba(255,255,255,0.4)'">CANCEL</button>
+      <div style="text-align:center;margin-top:10px;font-size:10px;color:rgba(255,255,255,0.2);letter-spacing:.5px">You can also type on keyboard</div>
+    </div>`;
+}
+function pinKey(d){
+  if(_pinValue.length>=4)return;
+  _pinValue+=d;
+  const ov=document.getElementById('overlay');
+  if(ov){const dots=ov.querySelectorAll('[data-pin-dot]');if(dots.length)dots.forEach((dot,i)=>dot.style.background=i<_pinValue.length?'#F0A500':'transparent');}
+  // re-render dots inline by rebuilding just the dot section
+  const mbox=ov&&ov.querySelector('.mbox');
+  if(mbox){
+    const dotContainer=mbox.querySelector('[data-dots]');
+    if(dotContainer){
+      dotContainer.innerHTML=Array.from({length:4},(_,i)=>`<div style="width:14px;height:14px;border-radius:50%;border:2px solid ${i<_pinValue.length?'#F0A500':'rgba(255,255,255,0.25)'};background:${i<_pinValue.length?'#F0A500':'transparent'};transition:all .2s;box-shadow:${i<_pinValue.length?'0 0 8px rgba(240,165,0,.6)':'none'}"></div>`).join('');
+    }
+  }
+  if(_pinValue.length>=4)setTimeout(pinSubmit,160);
+}
+function pinDel(){
+  _pinValue=_pinValue.slice(0,-1);
+  const ov=document.getElementById('overlay');
+  const mbox=ov&&ov.querySelector('.mbox');
+  if(mbox){
+    const dotContainer=mbox.querySelector('[data-dots]');
+    if(dotContainer){
+      dotContainer.innerHTML=Array.from({length:4},(_,i)=>`<div style="width:14px;height:14px;border-radius:50%;border:2px solid ${i<_pinValue.length?'#F0A500':'rgba(255,255,255,0.25)'};background:${i<_pinValue.length?'#F0A500':'transparent'};transition:all .2s;box-shadow:${i<_pinValue.length?'0 0 8px rgba(240,165,0,.6)':'none'}"></div>`).join('');
+    }
+  }
+}
+function pinSubmit(){
+  if(_pinValue===settings.pin){
+    const cb=_pinCallback;_pinCallback=null;_pinActive=false;_pinValue='';
+    document.removeEventListener('keydown',_pinKeyHandler);
+    closeModal();cb();
+  }else{
+    _pinValue='';
+    const ov=document.getElementById('overlay');
+    if(ov)ov.querySelector('.mbox').innerHTML=pinModalHTML('Wrong PIN','❌  Incorrect PIN — try again');
+  }
+}
+function pinCancel(){
+  _pinCallback=null;_pinActive=false;_pinValue='';
+  document.removeEventListener('keydown',_pinKeyHandler);
+  closeModal();
+}
 
 window.addEventListener('beforeunload',function(e){const active=seats.filter(s=>s.occupied).length;if(active>0){e.preventDefault();e.returnValue=`${active} seat(s) still active!`;return e.returnValue;}});
 
 function renderStats(){
-  const occ=seats.filter(s=>s.occupied).length,blk=seats.filter(s=>s.blocked).length,rev=txnsForDate(todayStr()).reduce((s,t)=>s+t.totalAmount,0);
+  const occ=seats.filter(s=>s.occupied).length,blk=seats.filter(s=>s.blocked).length;
   document.getElementById('hdr-cafe-name').textContent='🎲 '+settings.cafeName;
-  document.getElementById('stats').innerHTML=`<div class="hs"><div class="hs-v">${occ}/${TOTAL_SEATS}</div><div class="hs-l">Occupied</div></div><div class="hs"><div class="hs-v">${inr(rev)}</div><div class="hs-l">Today</div></div>${blk?`<div class="hs"><div class="hs-v" style="color:#185FA5">${blk}</div><div class="hs-l">Reserved</div></div>`:''}`;
+  document.getElementById('stats').innerHTML=`<div class="hs"><div class="hs-v">${occ}/${TOTAL_SEATS}</div><div class="hs-l">Occupied</div></div>${blk?`<div class="hs"><div class="hs-v" style="color:#185FA5">${blk}</div><div class="hs-l">Reserved</div></div>`:''}`;
 }
 
 function checkExportBanner(){
