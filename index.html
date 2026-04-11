@@ -622,11 +622,18 @@ function finalizeCheckout(gid,phone=''){
 // ═══ EDIT SESSION ═══
 function openEditSession(gid){
   const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;const s0=grp[0];
-  const t0local=new Date(s0.t0-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+  const t0d=new Date(s0.t0);
+  const dateVal=t0d.getFullYear()+'-'+String(t0d.getMonth()+1).padStart(2,'0')+'-'+String(t0d.getDate()).padStart(2,'0');
+  const timeVal=String(t0d.getHours()).padStart(2,'0')+':'+String(t0d.getMinutes()).padStart(2,'0');
   const avail=seats.filter(s=>!s.occupied&&!s.blocked).length;
   showModal(`<h3>Edit Session</h3>
     <div class="fgrp"><label class="flabel">Customer name</label><input id="es-name" value="${s0.name}"></div>
-    <div class="fgrp"><label class="flabel">⏱ Check-in start time</label><input id="es-t0" type="datetime-local" value="${t0local}"></div>
+    <div class="fgrp"><label class="flabel">⏱ Check-in date &amp; time</label>
+      <div style="display:flex;gap:8px">
+        <input id="es-date" type="date" value="${dateVal}" style="flex:1">
+        <input id="es-time" type="time" value="${timeVal}" style="flex:1">
+      </div>
+    </div>
     <div class="fgrp">
       <label class="flabel">👥 Persons <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none">(now ${s0.groupSize} · ${avail} free seats)</span></label>
       <div class="counter"><button class="cbtn" onclick="chgEsP(-1)">−</button><span class="cval" id="es-p">${s0.groupSize}</span><button class="cbtn" onclick="chgEsP(1)">+</button><span style="font-size:11px;color:var(--text3)" id="es-p-hint"></span></div>
@@ -638,7 +645,10 @@ function openEditSession(gid){
 }
 function chgEsP(d){const el=document.getElementById('es-p');const cur=parseInt(el.textContent);const avail=seats.filter(s=>!s.occupied&&!s.blocked).length;const newVal=Math.max(1,cur+d);if(d>0&&avail<1){const h=document.getElementById('es-p-hint');if(h)h.textContent='⚠ No free seats';return;}el.textContent=newVal;const h=document.getElementById('es-p-hint');if(h){if(newVal<cur)h.textContent=`← frees ${cur-newVal} seat(s)`;else if(newVal>cur)h.textContent=`← uses ${newVal-cur} free seat(s)`;else h.textContent='';}}
 function doEditSession(gid){
-  const name=document.getElementById('es-name').value.trim(),t0Input=document.getElementById('es-t0')?.value,newT0=t0Input?new Date(t0Input).getTime():null,newPersons=parseInt(document.getElementById('es-p')?.textContent)||0;
+  const name=document.getElementById('es-name').value.trim();
+  const esDate=document.getElementById('es-date')?.value,esTime=document.getElementById('es-time')?.value;
+  const newT0=(esDate&&esTime)?new Date(esDate+'T'+esTime).getTime():null;
+  const newPersons=parseInt(document.getElementById('es-p')?.textContent)||0;
   if(newT0&&newT0>Date.now()){alert('Start time cannot be in the future.');return;}
   const grp=seats.filter(s=>s.groupId===gid),currentPersons=grp.length;
   if(newPersons<currentPersons){const toFree=grp.slice(newPersons).map(s=>s.id);seats=seats.map(s=>{if(s.groupId===gid&&toFree.includes(s.id))return{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0};if(s.groupId===gid)return{...s,name:name||s.name,groupSize:newPersons,...(newT0?{t0:newT0}:{})};return s;});}
