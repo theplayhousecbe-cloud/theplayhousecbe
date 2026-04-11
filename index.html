@@ -124,7 +124,12 @@ body{font-family:system-ui,sans-serif;background:#f4f4f4;color:#111;min-height:1
 .reset-preview-count{font-family:monospace;font-size:32px;font-weight:700;color:#C0392B}
 .reset-preview-label{font-size:11px;color:#888;margin-top:3px}
 .reset-preview-range{font-size:10px;color:#aaa;margin-top:4px}
-/* LOCKED NAV TOAST */
+/* phone highlight box */
+.phone-box{background:#F0F7FF;border:1.5px solid #7AB8F5;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.phone-box .flabel{color:#185FA5;margin-bottom:5px}
+.phone-box input{background:#fff;border-color:#7AB8F5;font-size:15px;padding:9px 10px;letter-spacing:.05em}
+/* persons edit badge */
+.persons-badge{display:inline-flex;align-items:center;gap:4px;background:#FFF8EC;border:1px solid #FACF80;border-radius:6px;padding:3px 8px;font-size:11px;color:#7A4F00;margin-left:6px;vertical-align:middle}
 .nav-lock-toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#C0392B;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;pointer-events:none}
 .nav-lock-toast.show{opacity:1}
 </style>
@@ -188,8 +193,6 @@ let groupColorMap={},gcIdx=0,currentView='floor',selectedMethod='cash';
 let cartItems={},coInfo=null,reportDate=todayStr();
 let _pinCallback=null,_pinValue='',_pinActive=false,_lastDateStr=todayStr();
 let customerCounter=1;
-
-// ══ RECEIPT LOCK FLAG ══
 let _receiptActive = false;
 
 function mkSeats(){return Array.from({length:TOTAL_SEATS},(_,i)=>({id:i+1,occupied:false,name:'',t0:null,groupId:null,groupSize:0,blocked:false,blockInfo:null}));}
@@ -214,7 +217,6 @@ function fmtDate(iso){if(!iso)return '—';const d=new Date(iso);return d.toLoca
 function allDates(){const dates=[...new Set(txns.map(t=>t.date))].sort((a,b)=>new Date(b)-new Date(a));if(!dates.includes(todayStr()))dates.unshift(todayStr());return dates;}
 function txnsForDate(d){return txns.filter(t=>t.date===d);}
 
-// ══ NAV LOCK — shows toast and blocks switching when receipt is open ══
 function showNavLockToast(){
   const t=document.getElementById('nav-lock-toast');
   t.classList.add('show');
@@ -259,7 +261,7 @@ function markExported(date){settings.lastExportDate=date;saveAll();checkExportBa
 setInterval(()=>{const today=todayStr();if(today!==_lastDateStr){const prev=_lastDateStr;_lastDateStr=today;const ptx=txnsForDate(prev);if(ptx.length>0&&settings.lastExportDate!==prev){const rev=ptx.reduce((s,t)=>s+t.totalAmount,0);showModal(`<div style="text-align:center;margin-bottom:14px"><div style="font-size:32px;margin-bottom:8px">🌙</div><h3>New day — export yesterday?</h3></div><div class="hint-box">${ptx.length} sessions · ${inr(rev)} revenue</div><button class="btn-pri" onclick="exportCSV('${prev}');markExported('${prev}');closeModal()">📊 Export CSV</button><button class="btn-pri grn" onclick="exportPDF('${prev}');markExported('${prev}');closeModal()">📄 Export PDF</button><button class="btn-sec" onclick="markExported('${prev}');closeModal()">Skip</button>`);}}},60000);
 
 // ═══ RESET ═══
-let _resetCutoff=0; // stored globally so onclick strings never embed large numbers or nested templates
+let _resetCutoff=0;
 
 function openReset(){
   if(_receiptActive){showNavLockToast();return;}
@@ -289,7 +291,6 @@ function showResetModal(){
       ? '<button class="btn-pri blue" style="margin-top:6px" onclick="confirmClearReservationsOnly()">🔒 Clear Reservations Only</button>'
       : ''}
     <button class="btn-sec" onclick="closeModal()">Cancel</button>`);
-  // Auto-run preview so existing values show correct state immediately
   setTimeout(updateResetPreview, 30);
 }
 function updateResetPreview(){
@@ -302,22 +303,11 @@ function updateResetPreview(){
   if(countEl)countEl.textContent=toDelete.length;
   if(labelEl){
     if(days===0&&hours===0){labelEl.textContent='Enter days or hours above';}
-    else{
-      const ts=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');
-      labelEl.textContent='transaction'+(toDelete.length!==1?'s':'')+' from the last '+ts+' will be deleted';
-    }
+    else{const ts=(days>0?days+' day'+(days>1?'s':''):'')+(days>0&&hours>0?' + ':'')+(hours>0?hours+' hour'+(hours>1?'s':''):'');labelEl.textContent='transaction'+(toDelete.length!==1?'s':'')+' from the last '+ts+' will be deleted';}
   }
-  if(rangeEl&&totalMs>0){
-    rangeEl.textContent='From '+new Date(_resetCutoff).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+' → Now';
-  } else if(rangeEl){rangeEl.textContent='';}
-  if(btnEl){
-    const can=totalMs>0&&toDelete.length>0;
-    btnEl.disabled=!can;btnEl.style.opacity=can?'1':'0.4';btnEl.style.cursor=can?'pointer':'not-allowed';
-    btnEl.textContent='🗑 Delete '+toDelete.length+' Transaction'+(toDelete.length!==1?'s':'');
-  }
+  if(rangeEl&&totalMs>0){rangeEl.textContent='From '+new Date(_resetCutoff).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+' → Now';}else if(rangeEl){rangeEl.textContent='';}
+  if(btnEl){const can=totalMs>0&&toDelete.length>0;btnEl.disabled=!can;btnEl.style.opacity=can?'1':'0.4';btnEl.style.cursor=can?'pointer':'not-allowed';btnEl.textContent='🗑 Delete '+toDelete.length+' Transaction'+(toDelete.length!==1?'s':'');}
 }
-
-// Step 1: confirm transaction delete
 function confirmReset(){
   const toDelete=txns.filter(t=>t.t1>=_resetCutoff);
   if(!toDelete.length){alert('No transactions in that range.');return;}
@@ -339,8 +329,6 @@ function confirmReset(){
   html+='<button class="btn-sec" onclick="showResetModal()">← Go Back</button>';
   showModal(html);
 }
-
-// Step 2 (optional): confirm reservation clear
 function confirmClearReservationsOnly(){
   const rsvCount=seats.filter(s=>s.blocked).length;
   if(!rsvCount){showModal('<h3>No Reservations</h3><p style="color:#888;font-size:13px">There are no active reservations to clear.</p><button class="btn-sec" onclick="closeModal()">OK</button>');return;}
@@ -363,8 +351,6 @@ function confirmClearReservationsOnly(){
     +'<button class="btn-pri blue" style="margin-top:0" onclick="doClearReservations()">Yes — Clear All Reservations</button>'
     +'<button class="btn-sec" onclick="closeModal()">Keep Reservations</button>');
 }
-
-// Actual execution functions — no large numbers or logic in onclick strings
 function doResetTxns(){
   const before=txns.length;
   txns=txns.filter(t=>t.t1<_resetCutoff);
@@ -393,10 +379,6 @@ function doClearReservations(){
     +'reservation'+(rsvCleared!==1?'s':'')+' removed.<br>Seats are now free.</p></div>'
     +'<button class="btn-pri grn" onclick="closeModal()">Done</button>');
 }
-
-// ═══════════════════════════════════════════════════════════════
-// FIX 1: doReset now also clears all blocked/reserved seats
-// ═══════════════════════════════════════════════════════════════
 
 // ═══ FLOOR ═══
 function renderFloor(){
@@ -443,9 +425,7 @@ function doCheckin(startId){
   saveAll();closeModal();if(currentView==='floor')renderFloor();
 }
 
-// ═══════════════════════════════════════════════════════
-// ═══ BLOCK / RESERVE — with persons + menu pre-order ═══
-// ═══════════════════════════════════════════════════════
+// ═══ BLOCK / RESERVE ═══
 function openBlockSeat(startId){
   const cats=[...new Set(menuItems.map(m=>m.category))];
   const menuHTML=cats.map(cat=>{
@@ -462,9 +442,7 @@ function openBlockSeat(startId){
       </div>`).join('')}
     </div>`;
   }).join('');
-
   window._rsvCart={};
-
   showModal(`<h3>🔒 Reserve Seat #${String(startId).padStart(2,'0')}</h3>
     <div class="fgrp"><label class="flabel">Customer name</label><input id="blk-name" placeholder="Enter name..." autocomplete="off"></div>
     <div class="fgrp"><label class="flabel">Number of persons expected</label>
@@ -473,16 +451,12 @@ function openBlockSeat(startId){
     <div class="fgrp"><label class="flabel">Appointment date</label><input id="blk-date" type="date" value="${todayISO()}"></div>
     <div class="fgrp"><label class="flabel">Appointment time</label><input id="blk-time" type="time" value="${new Date().toTimeString().slice(0,5)}"></div>
     <div class="fgrp"><label class="flabel">Note (optional)</label><input id="blk-note" placeholder="e.g. Birthday party..."></div>
-
     <div style="font-size:11px;font-weight:600;color:#555;margin-bottom:6px;margin-top:4px">🍽 Pre-order food & beverages (optional)</div>
-    <div style="max-height:180px;overflow-y:auto;border:1px solid #eee;border-radius:8px;padding:8px 10px;background:#fafafa;margin-bottom:10px">
-      ${menuHTML}
-    </div>
+    <div style="max-height:180px;overflow-y:auto;border:1px solid #eee;border-radius:8px;padding:8px 10px;background:#fafafa;margin-bottom:10px">${menuHTML}</div>
     <div style="background:#f7f7f7;border-radius:7px;padding:7px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
       <span style="font-size:12px;color:#888">Pre-order total</span>
       <span style="font-family:monospace;font-size:14px;font-weight:700;color:#BA7517" id="rsv-total">₹0</span>
     </div>
-
     <button class="btn-pri blue" onclick="doBlockSeat(${startId})">Reserve Seats</button>
     <button class="btn-sec" onclick="closeModal()">Cancel</button>`);
 }
@@ -510,7 +484,6 @@ function doBlockSeat(startId){
   window._rsvCart={};
   saveAll();closeModal();if(currentView==='floor')renderFloor();
 }
-
 function openBlockedOptions(id){
   const seat=seats.find(s=>s.id===id),bi=seat.blockInfo||{};
   const preOrderHTML=bi.preOrder&&bi.preOrder.length?
@@ -520,7 +493,6 @@ function openBlockedOptions(id){
       <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:#BA7517;padding-top:4px;margin-top:4px;border-top:1px dashed #eee"><span>Pre-order total</span><span>${inr(bi.preOrder.reduce((s,a)=>s+a.price*a.qty,0))}</span></div>
     </div>`:
     `<div style="font-size:11px;color:#aaa;margin-top:4px">No pre-order</div>`;
-
   showModal(`<h3>Reserved — Seat #${String(id).padStart(2,'0')}</h3>
     <div class="bill-box">
       <div class="brow"><span class="lbl">Name</span><span class="val" style="font-family:inherit">${bi.name||'—'}</span></div>
@@ -565,7 +537,6 @@ function editBlockedSeat(id){
     </div>`;
   }).join('');
   const existingTotal=bi.preOrder?bi.preOrder.reduce((s,a)=>s+a.price*a.qty,0):0;
-
   closeModal();
   showModal(`<h3>Edit Reservation — #${String(id).padStart(2,'0')}</h3>
     <div class="fgrp"><label class="flabel">Customer name</label><input id="eblk-name" value="${bi.name||''}"></div>
@@ -620,7 +591,10 @@ function openCheckout(gid){
     </div>
     <div style="font-size:11px;font-weight:600;color:#666;margin-bottom:5px">+ Add food & beverages</div>
     <div style="max-height:155px;overflow-y:auto;border:1px solid #eee;border-radius:8px;padding:8px 10px;background:#fafafa;margin-bottom:10px">${menuHTML}</div>
-    <div class="fgrp"><label class="flabel">📱 Phone (for WhatsApp bill — optional)</label><input id="co-phone" type="tel" placeholder="10-digit mobile number" maxlength="10"></div>
+    <div class="phone-box">
+      <label class="flabel">📱 WhatsApp number <span style="font-size:10px;font-weight:400;color:#185FA5">(for bill delivery)</span></label>
+      <input id="co-phone" type="tel" placeholder="Enter 10-digit mobile number" maxlength="10" inputmode="numeric" pattern="[0-9]*">
+    </div>
     <div class="fgrp"><label class="flabel">Payment method</label>
       <div class="pay-row"><button class="pbtn sel" id="pm-cash" onclick="selM('cash')">CASH</button><button class="pbtn" id="pm-upi" onclick="selM('upi')">UPI</button><button class="pbtn" id="pm-card" onclick="selM('card')">CARD</button></div>
     </div>
@@ -651,13 +625,13 @@ function finalizeCheckout(gid,phone=''){
   saveAll();showReceipt(tx);if(currentView==='floor')renderFloor();
 }
 
-// ═══════════════════════════════════════════════════════════════
-// FIX 2: openEditSession — now includes editable start time (t0)
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+// EDIT SESSION — now includes editable persons count + start time
+// ═══════════════════════════════════════════════════════════════════════
 function openEditSession(gid){
   const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;const s0=grp[0];
-  // Convert stored UTC timestamp to local datetime-local string
   const t0local=new Date(s0.t0-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+  const avail=seats.filter(s=>!s.occupied&&!s.blocked).length; // extra free seats
   showModal(`<h3>Edit Session</h3>
     <div class="fgrp">
       <label class="flabel">Customer name</label>
@@ -667,30 +641,94 @@ function openEditSession(gid){
       <label class="flabel">⏱ Check-in start time</label>
       <input id="es-t0" type="datetime-local" value="${t0local}">
     </div>
-    <div class="hint-box" style="margin-bottom:12px">Editing start time corrects the running timer and recalculates the seat charge at checkout.</div>
+    <div class="fgrp">
+      <label class="flabel">👥 Number of persons <span style="font-size:10px;color:#888;font-weight:400;text-transform:none">(currently ${s0.groupSize} · ${avail} extra seats free)</span></label>
+      <div class="counter">
+        <button class="cbtn" onclick="chgEsP(-1)">−</button>
+        <span class="cval" id="es-p">${s0.groupSize}</span>
+        <button class="cbtn" onclick="chgEsP(1)">+</button>
+        <span style="font-size:11px;color:#aaa" id="es-p-hint"></span>
+      </div>
+    </div>
+    <div class="hint-box" style="margin-bottom:12px">
+      Reducing persons frees extra seats immediately. Increasing books adjacent free seats.<br>
+      Editing start time corrects the running timer and seat charge.
+    </div>
     <button class="btn-pri" style="margin-top:0" onclick="doEditSession('${gid}')">Save Changes</button>
     <button class="btn-pri red" onclick="confirmCancelSession('${gid}')">✕ Cancel Session (No Charge)</button>
     <button class="btn-sec" onclick="openCheckout('${gid}')">← Back to Checkout</button>`);
+  // wire up hint
+  document.getElementById('es-p').addEventListener && 0;
 }
 
-// FIX 2b: doEditSession — applies the new t0 to all seats in the group
+// counter helper for Edit Session persons
+function chgEsP(d){
+  const el=document.getElementById('es-p');
+  const cur=parseInt(el.textContent);
+  const avail=seats.filter(s=>!s.occupied&&!s.blocked).length;
+  const newVal=Math.max(1,cur+d);
+  if(d>0&&avail<1){const h=document.getElementById('es-p-hint');if(h)h.textContent='⚠ No free seats';return;}
+  el.textContent=newVal;
+  const h=document.getElementById('es-p-hint');
+  if(h){
+    if(newVal<cur) h.textContent=`← will free ${cur-newVal} seat(s)`;
+    else if(newVal>cur) h.textContent=`← will use ${newVal-cur} free seat(s)`;
+    else h.textContent='';
+  }
+}
+
 function doEditSession(gid){
   const name=document.getElementById('es-name').value.trim();
   const t0Input=document.getElementById('es-t0')?.value;
   const newT0=t0Input?new Date(t0Input).getTime():null;
+  const newPersons=parseInt(document.getElementById('es-p')?.textContent)||0;
   if(newT0&&newT0>Date.now()){alert('Start time cannot be in the future.');return;}
-  seats=seats.map(s=>s.groupId===gid?{...s,name,...(newT0&&newT0>0?{t0:newT0}:{})}:s);
-  // Update coInfo if it's the same group so checkout totals refresh
-  if(coInfo&&coInfo.gid===gid&&newT0)coInfo.t0=newT0;
+
+  const grp=seats.filter(s=>s.groupId===gid);
+  const currentPersons=grp.length;
+
+  if(newPersons<currentPersons){
+    // Free extra seats from the end of the group
+    const toFree=grp.slice(newPersons).map(s=>s.id);
+    seats=seats.map(s=>{
+      if(s.groupId===gid&&toFree.includes(s.id)){
+        return {...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0};
+      }
+      if(s.groupId===gid){
+        return {...s,name:name||s.name,groupSize:newPersons,...(newT0?{t0:newT0}:{})};
+      }
+      return s;
+    });
+  } else if(newPersons>currentPersons){
+    // Occupy additional free seats
+    const needed=newPersons-currentPersons;
+    const refId=grp[grp.length-1].id; // last seat in group
+    const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{
+      const ai=a.id>refId?a.id-refId:a.id+TOTAL_SEATS;
+      const bi=b.id>refId?b.id-refId:b.id+TOTAL_SEATS;
+      return ai-bi;
+    });
+    if(free.length<needed){alert(`Only ${free.length} free seat(s) available.`);return;}
+    const toOcc=free.slice(0,needed).map(s=>s.id);
+    const t0use=newT0||grp[0].t0;
+    seats=seats.map(s=>{
+      if(toOcc.includes(s.id)) return {...s,occupied:true,name:name||grp[0].name,t0:t0use,groupId:gid,groupSize:newPersons};
+      if(s.groupId===gid) return {...s,name:name||s.name,groupSize:newPersons,...(newT0?{t0:newT0}:{})};
+      return s;
+    });
+  } else {
+    // Same count — just update name and t0
+    seats=seats.map(s=>s.groupId===gid?{...s,name:name||s.name,...(newT0&&newT0>0?{t0:newT0}:{})}:s);
+  }
+
+  if(coInfo&&coInfo.gid===gid){coInfo.persons=newPersons;if(newT0)coInfo.t0=newT0;}
   saveAll();closeModal();if(currentView==='floor')renderFloor();
 }
 
 function confirmCancelSession(gid){const grp=seats.filter(s=>s.groupId===gid),s0=grp[0];showModal(`<h3>Cancel Session?</h3><div class="warn-box">⚠ Frees all ${s0.groupSize} seat(s) with NO charge.</div><button class="btn-pri red" style="margin-top:0" onclick="doCancelSession('${gid}')">Yes, Cancel — No Charge</button><button class="btn-sec" onclick="openCheckout('${gid}')">No — Back to Checkout</button>`);}
 function doCancelSession(gid){seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0}:s);delete groupColorMap[gid];cartItems={};coInfo=null;saveAll();closeModal();if(currentView==='floor')renderFloor();}
 
-// ═══════════════════════════════════════════════════════════════
-// ═══ RECEIPT — nav LOCKED until Done ═══════════════════════════
-// ═══════════════════════════════════════════════════════════════
+// ═══ RECEIPT ═══
 function showReceipt(tx){
   lockNav();
   const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
@@ -747,11 +785,7 @@ function askPrintBeforeDone(txId){
     +'<button class="btn-sec" style="margin-top:8px;border-radius:10px" onclick="doneReceipt()">✕ Skip — Just Close</button>'
   );
 }
-
-function doneReceipt(){
-  unlockNav();
-  closeModal();
-}
+function doneReceipt(){unlockNav();closeModal();}
 
 // ═══ ADD MORE ITEMS TO COMPLETED BILL ═══
 function editReceiptAddons(txId){
@@ -802,76 +836,156 @@ function saveEditedAddons(txId){
 }
 
 function sendWhatsApp(txId){const tx=txns.find(t=>t.id===txId);if(!tx||!tx.phone){alert('No phone number.');return;}const ao=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;const msg=`Hi ${tx.name} 👋\n\nThank you for visiting ${settings.cafeName} 🎲\n\n🧾 Your Bill:\nSeats: ${tx.persons}\nDuration: ${fmtMins(tx.t1-tx.t0)}\nSeat charge: ${inr(tx.seatCharge)}${ao?`\nFood & drinks: ${inr(ao)}`:''}\n\n✅ Total Paid: ${inr(tx.totalAmount)} (${tx.method.toUpperCase()})\n\nVisit us again soon! 😊`;window.open(`https://wa.me/91${tx.phone}?text=${encodeURIComponent(msg)}`);}
+
+// ═══════════════════════════════════════════════
+// PRINT — improved legibility
+// ═══════════════════════════════════════════════
 function printR(txId){
   const tx=txns.find(t=>t.id===txId);if(!tx)return;
   const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
   const inT=new Date(tx.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
   const outT=new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
-  const dateStr=new Date(tx.t1).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+  const dateStr=new Date(tx.t1).toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+  const timeStr=new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
   const dur=fmtMins(tx.t1-tx.t0);
 
-  function row(l,r,bold){
-    return '<tr'+(bold?' style="font-weight:700"':'')+
-      '><td style="padding:3px 2px;color:#333">'+l+'</td>'+
-      '<td style="padding:3px 2px;text-align:right;font-weight:600">'+r+'</td></tr>';
-  }
-  function divider(dbl){
-    return '<tr><td colspan="2" style="padding:2px 0;border-top:'+(dbl?'2':'1')+'px solid #000;font-size:1px">&nbsp;</td></tr>';
-  }
-
   const addonRows=tx.addons&&tx.addons.length
-    ? '<tr><td colspan="2" style="padding:4px 2px 2px;font-size:10px;font-weight:700;letter-spacing:.5px">FOOD & BEVERAGES</td></tr>'
-      + tx.addons.map(a=>row('  '+a.name+' ×'+a.qty,'Rs.'+Math.round(a.price*a.qty))).join('')
+    ? `<tr><td colspan="2" style="padding:8px 0 3px;font-size:11px;font-weight:700;letter-spacing:1px;color:#555;border-top:1px dashed #ccc">FOOD &amp; BEVERAGES</td></tr>`
+      + tx.addons.map(a=>`<tr><td style="padding:3px 0;font-size:13px">${a.name} <span style="color:#888">×${a.qty}</span></td><td style="text-align:right;font-size:13px;font-family:'Courier New',monospace;font-weight:600">Rs.${Math.round(a.price*a.qty)}</td></tr>`).join('')
     : '';
 
-  const html='<!DOCTYPE html><html><head><title>Receipt</title>'
-    +'<style>'
-    +'@page{size:80mm auto;margin:3mm 3mm 15mm 3mm}'
-    +'*{box-sizing:border-box;margin:0;padding:0}'
-    +'body{font-family:"Courier New",Courier,monospace;font-size:12px;line-height:1.4;width:74mm;background:#fff;color:#000}'
-    +'.hdr{text-align:center;padding:4px 0 2px}'
-    +'.hdr-name{font-size:15px;font-weight:900;letter-spacing:1px}'
-    +'.hdr-addr{font-size:10px;color:#444;margin-top:1px}'
-    +'.hdr-date{font-size:11px;margin-top:3px}'
-    +'table{width:100%;border-collapse:collapse;font-size:12px}'
-    +'.total-row{background:#000;color:#fff}'
-    +'.total-row td{padding:5px 4px;font-size:14px;font-weight:900;letter-spacing:.5px}'
-    +'.footer{text-align:center;font-size:10px;padding:6px 0 2px;letter-spacing:.3px}'
-    +'.no-print{text-align:center;margin:12px 0}'
-    +'@media print{.no-print{display:none}}'
-    +'</style></head><body>'
-    +'<div class="hdr">'
-    +'<div class="hdr-name">'+settings.cafeName.toUpperCase()+'</div>'
-    +(settings.address?'<div class="hdr-addr">'+settings.address+'</div>':'')
-    +'<div class="hdr-date">'+dateStr+'</div>'
-    +'</div>'
-    +'<table>'
-    +'<tr><td colspan="2" style="border-top:2px solid #000;padding:0;font-size:1px">&nbsp;</td></tr>'
-    +row('CUSTOMER',tx.name.toUpperCase(),true)
-    +row('SEATS ('+tx.persons+'p)',sl)
-    +row('IN',inT)
-    +row('OUT',outT)
-    +row('DURATION',dur)
-    +row('RATE','Rs.'+settings.ratePerHour+'/hr/seat')
-    +divider(false)
-    +row('SEAT CHARGE','Rs.'+Math.round(tx.seatCharge).toLocaleString('en-IN'))
-    +addonRows
-    +divider(false)
-    +row('PAYMENT',tx.method.toUpperCase(),true)
-    +'<tr><td colspan="2" style="border-top:2px solid #000;padding:0;font-size:1px">&nbsp;</td></tr>'
-    +'<tr class="total-row"><td>TOTAL</td><td style="text-align:right;font-size:15px">Rs.'+Math.round(tx.totalAmount).toLocaleString('en-IN')+'</td></tr>'
-    +'</table>'
-    +'<div class="footer">Thank you for visiting!<br>See you again 🎲</div>'
-    +'<div class="no-print" style="margin-top:14px">'
-    +'<button onclick="window.print()" style="padding:9px 26px;background:#222;color:#fff;border:none;border-radius:7px;font-size:13px;font-family:inherit;cursor:pointer">🖨️ Print</button>'
-    +'</div>'
-    +'<scr'+'ipt>setTimeout(function(){window.print();},400);<\/scr'+'ipt>'
-    +'</body></html>';
+  const html=`<!DOCTYPE html>
+<html>
+<head>
+<title>Receipt — ${tx.name}</title>
+<meta charset="UTF-8">
+<style>
+  @page { size: 80mm auto; margin: 4mm 4mm 18mm 4mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    width: 72mm;
+    background: #fff;
+    color: #111;
+  }
 
-  const w=window.open('','_blank','width=340,height=600');
+  /* ── HEADER ── */
+  .hdr { text-align: center; padding: 6px 0 4px; border-bottom: 2px solid #111; margin-bottom: 8px; }
+  .hdr-name { font-size: 20px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+  .hdr-addr { font-size: 11px; color: #555; margin-top: 2px; }
+  .hdr-meta { font-size: 11px; color: #666; margin-top: 4px; }
+  .hdr-meta span { display: inline-block; margin: 0 3px; }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #888;
+    font-weight: 700;
+    margin: 10px 0 4px;
+  }
+
+  /* ── ROWS TABLE ── */
+  table { width: 100%; border-collapse: collapse; }
+  td { vertical-align: top; }
+  .lbl { color: #666; font-size: 12px; padding: 3px 0; width: 40%; }
+  .val { font-size: 13px; font-weight: 600; text-align: right; padding: 3px 0; font-family: 'Courier New', monospace; }
+  .val-plain { font-size: 13px; font-weight: 600; text-align: right; padding: 3px 0; }
+  .divider td { border-top: 1px dashed #ccc; padding-top: 6px; }
+  .divider-solid td { border-top: 2px solid #111; padding-top: 0; font-size: 1px; }
+
+  /* ── CUSTOMER BLOCK ── */
+  .customer-block { padding: 6px 0 8px; border-bottom: 1px dashed #ccc; margin-bottom: 6px; }
+  .customer-name { font-size: 16px; font-weight: 800; letter-spacing: .5px; line-height: 1.2; }
+  .customer-meta { font-size: 11px; color: #666; margin-top: 2px; }
+
+  /* ── TOTAL BLOCK ── */
+  .total-block {
+    background: #111;
+    color: #fff;
+    padding: 9px 10px;
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .total-lbl { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+  .total-amt { font-size: 22px; font-weight: 900; font-family: 'Courier New', monospace; }
+
+  /* ── PAYMENT BADGE ── */
+  .pay-badge {
+    display: inline-block;
+    border: 2px solid #111;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    padding: 2px 8px;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  /* ── FOOTER ── */
+  .footer { text-align: center; font-size: 11px; color: #888; padding: 10px 0 4px; border-top: 1px dashed #ccc; margin-top: 8px; line-height: 1.7; }
+  .footer-brand { font-size: 13px; font-weight: 700; color: #333; letter-spacing: .5px; }
+
+  .no-print { text-align: center; margin: 14px 0; }
+  @media print { .no-print { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-name">${settings.cafeName.toUpperCase()}</div>
+  ${settings.address ? `<div class="hdr-addr">${settings.address}</div>` : ''}
+  <div class="hdr-meta">
+    <span>${dateStr}</span> &nbsp;·&nbsp; <span>${timeStr}</span>
+  </div>
+</div>
+
+<div class="customer-block">
+  <div class="customer-name">${tx.name.toUpperCase()}</div>
+  <div class="customer-meta">Seats: ${sl} &nbsp;·&nbsp; ${tx.persons} person${tx.persons>1?'s':''}</div>
+</div>
+
+<div class="section-label">Session Details</div>
+<table>
+  <tr><td class="lbl">Check-in</td><td class="val">${inT}</td></tr>
+  <tr><td class="lbl">Check-out</td><td class="val">${outT}</td></tr>
+  <tr><td class="lbl">Duration</td><td class="val">${dur}</td></tr>
+  <tr><td class="lbl">Rate</td><td class="val">Rs.${settings.ratePerHour}/hr/seat</td></tr>
+  <tr class="divider"><td class="lbl">Seat charge</td><td class="val">Rs.${Math.round(tx.seatCharge).toLocaleString('en-IN')}</td></tr>
+  ${addonRows}
+</table>
+
+<div style="text-align:right; margin-top:6px;">
+  <span class="pay-badge">${tx.method.toUpperCase()}</span>
+</div>
+
+<div class="total-block">
+  <div class="total-lbl">TOTAL</div>
+  <div class="total-amt">Rs.${Math.round(tx.totalAmount).toLocaleString('en-IN')}</div>
+</div>
+
+<div class="footer">
+  <div class="footer-brand">🎲 ${settings.cafeName}</div>
+  Thank you for visiting!<br>See you again soon ✨
+</div>
+
+<div class="no-print" style="margin-top:16px">
+  <button onclick="window.print()" style="padding:10px 28px;background:#111;color:#fff;border:none;border-radius:7px;font-size:14px;font-family:inherit;cursor:pointer">🖨️ Print Receipt</button>
+</div>
+
+<script>setTimeout(function(){ window.print(); }, 400);<\/script>
+</body>
+</html>`;
+
+  const w=window.open('','_blank','width=360,height=640');
   w.document.open();w.document.write(html);w.document.close();
 }
-
 
 // ═══ MENU ═══
 function renderMenu(){
@@ -926,7 +1040,7 @@ function renderSettings(){
       <button class="btn-sec" style="margin-top:0;border-color:#185FA5;color:#185FA5" onclick="exportAllCSV()">📊 Export All Transactions</button>
       <button class="btn-sec" style="margin-top:8px;border-color:#C0392B;color:#C0392B" onclick="requirePIN('Clear All Data',confirmClearData)">⚠ Clear All Data</button>
     </div>
-    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v3.0</strong><br>Firebase · Auto ID · WhatsApp · Reset+Reservations · Edit Timer · Nav Lock<br>Total transactions: <strong>${txns.length}</strong></div>
+    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v3.1</strong><br>Firebase · Auto ID · WhatsApp · Persons Edit · Edit Timer · Nav Lock<br>Total transactions: <strong>${txns.length}</strong></div>
   </div>`;
 }
 function saveSettings(){settings.cafeName=document.getElementById('s-name').value.trim()||'The Playhouse';settings.address=document.getElementById('s-addr').value.trim();settings.ratePerHour=parseFloat(document.getElementById('s-rate').value)||99;settings.pin=document.getElementById('s-pin').value;settings.largeBillThreshold=parseFloat(document.getElementById('s-threshold').value)||500;saveAll();renderStats();const btn=event.target;btn.textContent='✓ Saved!';btn.style.background='#27AE60';setTimeout(()=>{btn.textContent='Save All Settings';btn.style.background='';},1800);}
