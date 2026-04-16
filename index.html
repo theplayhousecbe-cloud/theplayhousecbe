@@ -27,6 +27,8 @@
   --blue-bg:rgba(29,78,216,0.08);
   --red:#dc2626;
   --red-bg:rgba(220,38,38,0.08);
+  --purple:#7c3aed;
+  --purple-bg:rgba(124,58,237,0.08);
   --seat-free-bg:#EAF3DE;
   --seat-free-border:#3B6D11;
   --seat-free-text:#1a4a08;
@@ -46,7 +48,6 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .app{display:flex;flex-direction:column;height:100vh}
 .hdr{height:var(--hdr-h);background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;z-index:10}
 .body{display:flex;flex:1;overflow:hidden}
-.sidebar{width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:2px;flex-shrink:0}
 .main{flex:1;overflow-y:auto;background:var(--bg)}
 
 /* ── HEADER ── */
@@ -63,17 +64,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .hnbtn{padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:11px;font-weight:500;color:var(--text2);font-family:inherit;white-space:nowrap;transition:all .15s;letter-spacing:.3px}
 .hnbtn:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
 .hnbtn.active{background:var(--gold);color:#fff;border-color:var(--gold);font-weight:700;box-shadow:0 2px 8px var(--gold-glow)}
+.hnbtn.food-tab{border-color:rgba(124,58,237,.35);color:var(--purple)}
+.hnbtn.food-tab.active{background:var(--purple);border-color:var(--purple);box-shadow:0 2px 8px rgba(124,58,237,.25)}
 .hnbtn.nav-locked{opacity:.3;cursor:not-allowed}
 .reset-btn{padding:6px 10px;border-radius:7px;border:1px solid rgba(239,68,68,0.3);background:transparent;cursor:pointer;font-size:11px;color:var(--red);font-family:inherit;white-space:nowrap;font-weight:600;transition:all .15s}
 .reset-btn:hover{background:var(--red-bg);border-color:var(--red)}
 .reset-btn.nav-locked{opacity:.3;cursor:not-allowed;pointer-events:none}
-
-/* ── SIDEBAR ── */
-.sbtn{width:40px;height:40px;border-radius:10px;border:1px solid transparent;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--text3);transition:all .15s;position:relative}
-.sbtn:hover{background:var(--bg3);color:var(--text);border-color:var(--border)}
-.sbtn.active{background:var(--gold-glow);color:var(--gold);border-color:rgba(240,165,0,.3)}
-.sbtn-tip{position:absolute;left:52px;background:var(--bg4);color:var(--text);font-size:11px;font-weight:500;padding:4px 8px;border-radius:6px;white-space:nowrap;border:1px solid var(--border2);pointer-events:none;opacity:0;transition:opacity .15s;z-index:100}
-.sbtn:hover .sbtn-tip{opacity:1}
 
 /* ── EXPORT BANNER ── */
 .exp-banner{background:linear-gradient(90deg,rgba(245,158,11,.15),rgba(245,158,11,.05));border-bottom:1px solid rgba(245,158,11,.25);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
@@ -105,6 +101,25 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .s-grp{font-size:9px;margin-top:2px;color:var(--text3)}
 .grp-dot{width:6px;height:6px;border-radius:50%;position:absolute;top:5px;right:5px}
 
+/* ── FOOD BILLING ── */
+.food-wrap{padding:14px}
+.food-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.food-title{font-size:16px;font-weight:700;color:var(--purple)}
+.food-subtitle{font-size:11px;color:var(--text3);margin-top:2px}
+.food-new-btn{padding:8px 16px;border-radius:8px;border:none;background:var(--purple);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.food-orders-grid{display:grid;gap:8px}
+.food-order-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all .15s}
+.food-order-card:hover{border-color:var(--purple);box-shadow:0 2px 12px rgba(124,58,237,.1)}
+.food-order-card.active-order{border-color:var(--purple);background:rgba(124,58,237,.03)}
+.fo-head{display:flex;justify-content:space-between;align-items:flex-start}
+.fo-name{font-size:14px;font-weight:700;color:var(--text)}
+.fo-time{font-size:10px;color:var(--text3);margin-top:2px}
+.fo-amt{font-size:18px;font-weight:800;color:var(--purple);font-variant-numeric:tabular-nums}
+.fo-items{font-size:11px;color:var(--text3);margin-top:6px;line-height:1.6}
+.fo-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:5px}
+.fo-status.open{background:rgba(124,58,237,.1);color:var(--purple)}
+.fo-status.closed{background:var(--green-bg);color:var(--green)}
+
 /* ── MODAL ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding:16px;overflow-y:auto;backdrop-filter:blur(3px)}
 .mbox{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:22px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,.15);margin:auto;flex-shrink:0}
@@ -128,6 +143,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .btn-pri.blue{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}.btn-pri.blue:hover{box-shadow:0 4px 20px rgba(59,130,246,.3)}
 .btn-pri.grn{background:linear-gradient(135deg,#22c55e,#16a34a)}.btn-pri.grn:hover{box-shadow:0 4px 20px rgba(34,197,94,.3)}
 .btn-pri.whatsapp{background:linear-gradient(135deg,#25D366,#1aaa50)}
+.btn-pri.purple{background:linear-gradient(135deg,#7c3aed,#5b21b6)}.btn-pri.purple:hover{box-shadow:0 4px 20px rgba(124,58,237,.3)}
 .btn-sec{width:100%;padding:9px;background:transparent;border:1px solid var(--border2);border-radius:9px;color:var(--text3);font-family:inherit;font-size:12px;cursor:pointer;margin-top:6px;transition:all .15s}
 .btn-sec:hover{border-color:var(--border2);color:var(--text);background:var(--bg3)}
 .bill-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px}
@@ -137,15 +153,28 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .btotal{font-size:26px;font-weight:800;color:var(--gold);text-align:center;padding:6px 0;font-variant-numeric:tabular-nums}
 .hint-box{background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.2);border-radius:8px;padding:8px 11px;font-size:11px;color:var(--amber);margin-bottom:8px;line-height:1.6}
 .warn-box{background:var(--red-bg);border:1px solid rgba(220,38,38,.25);border-radius:8px;padding:8px 11px;font-size:11px;color:#b91c1c;margin-bottom:8px}
+.info-box{background:var(--blue-bg);border:1px solid rgba(29,78,216,.2);border-radius:8px;padding:8px 11px;font-size:11px;color:var(--blue);margin-bottom:8px;line-height:1.6}
+.purple-box{background:var(--purple-bg);border:1px solid rgba(124,58,237,.2);border-radius:8px;padding:8px 11px;font-size:11px;color:var(--purple);margin-bottom:8px;line-height:1.6}
 .sec-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px}
 .sec-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
 .tag{font-size:10px;padding:2px 7px;border-radius:20px;margin-top:3px;display:inline-block;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
 .tag.cash{background:var(--green-bg);color:#15803d}
 .tag.upi{background:rgba(139,92,246,.15);color:#6d28d9}
 .tag.card{background:var(--blue-bg);color:#1d4ed8}
+.tag.food{background:var(--purple-bg);color:var(--purple)}
 .btn-row{display:flex;gap:7px;margin-top:7px}
 .add-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
 .add-row:last-child{border-bottom:none}
+
+/* ── EARLY CHECKOUT ── */
+.person-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
+.person-row.early-out{background:rgba(22,163,74,.05);border-color:rgba(22,163,74,.3)}
+.person-row-num{font-size:13px;font-weight:700;color:var(--text);min-width:30px}
+.person-row-charge{font-size:12px;font-weight:600;color:var(--gold);font-variant-numeric:tabular-nums}
+.person-early-input{padding:5px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-size:12px;font-family:inherit;outline:none;width:100px}
+.person-early-input:focus{border-color:var(--green)}
+.person-early-label{font-size:10px;color:var(--text3);margin-right:4px}
+.person-row-status{font-size:10px;font-weight:600;color:var(--green)}
 
 /* ── REPORT ── */
 .rpt{padding:14px}
@@ -166,6 +195,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .pbrow:last-child{border-bottom:none}
 .tx-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;transition:border .15s}
 .tx-item:hover{border-color:var(--border2)}
+.tx-item.food-tx{border-left:3px solid var(--purple)}
 .tx-seat{font-size:10px;color:var(--text3)}.tx-name{font-size:13px;font-weight:600;color:var(--text)}.tx-time{font-size:10px;color:var(--text3);margin-top:1px}
 .tx-amt{font-size:14px;font-weight:700;text-align:right;color:var(--gold);font-variant-numeric:tabular-nums}
 .tx-print{padding:3px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;font-size:10px;cursor:pointer;color:var(--text3);margin-top:4px;display:block;width:100%;font-family:inherit;transition:all .15s}
@@ -203,6 +233,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .nav-lock-toast{position:fixed;top:62px;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;padding:10px 20px;border-radius:8px;font-size:12px;font-weight:600;z-index:999;box-shadow:0 4px 20px rgba(239,68,68,.4);opacity:0;transition:opacity .3s;pointer-events:none;letter-spacing:.3px}
 .nav-lock-toast.show{opacity:1}
 
+/* ── EARLY CHECKOUT SUMMARY ── */
+.early-summary{background:var(--green-bg);border:1px solid rgba(22,163,74,.3);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.early-summary-title{font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.early-person-chip{display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid rgba(22,163,74,.3);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--green);margin:2px;font-weight:600}
+
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:var(--bg)}
@@ -225,6 +260,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
     <div class="hdr-stats" id="stats"></div>
     <div class="hdr-nav">
       <button class="hnbtn active" onclick="setView('floor')" id="btn-floor">Floor</button>
+      <button class="hnbtn food-tab" onclick="setView('food')" id="btn-food">🍽 Food Bill</button>
       <button class="hnbtn" onclick="setView('menu')" id="btn-menu">Menu</button>
       <button class="hnbtn" onclick="setView('report')" id="btn-report">Report</button>
       <button class="hnbtn" onclick="setView('settings')" id="btn-settings">⚙</button>
@@ -262,21 +298,46 @@ const DEFAULT_MENU=[
 
 let settings={cafeName:'THE PLAYHOUSE',address:'',ratePerHour:99,pin:'1234',lastExportDate:'',largeBillThreshold:500};
 let seats=mkSeats(),txns=[],menuItems=JSON.parse(JSON.stringify(DEFAULT_MENU));
+// foodOrders: open food-only orders (no seat)
+let foodOrders=[];
 let groupColorMap={},gcIdx=0,currentView='floor',selectedMethod='cash';
 let cartItems={},coInfo=null,reportDate=todayStr();
 let _pinCallback=null,_pinValue='',_pinActive=false,_lastDateStr=todayStr();
 let customerCounter=1,_receiptActive=false;
 
 function mkSeats(){return Array.from({length:TOTAL_SEATS},(_,i)=>({id:i+1,occupied:false,name:'',t0:null,groupId:null,groupSize:0,blocked:false,blockInfo:null}));}
-async function saveAll(){await db.collection("playhouse").doc("data").set({settings,seats,txns,menuItems,customerCounter});}
+async function saveAll(){await db.collection("playhouse").doc("data").set({settings,seats,txns,menuItems,customerCounter,foodOrders});}
 async function loadAll(){
   const doc=await db.collection("playhouse").doc("data").get();
-  if(doc.exists){const d=doc.data();settings=d.settings||settings;seats=d.seats||seats;txns=d.txns||txns;menuItems=d.menuItems||menuItems;customerCounter=d.customerCounter||1;}
+  if(doc.exists){const d=doc.data();settings=d.settings||settings;seats=d.seats||seats;txns=d.txns||txns;menuItems=d.menuItems||menuItems;customerCounter=d.customerCounter||1;foodOrders=d.foodOrders||[];}
   if(settings.cafeName==='My Café'||settings.cafeName==='My Cafe'||settings.cafeName==='The Playhouse')settings.cafeName='THE PLAYHOUSE';
 }
 
 function getGrpColor(gid){if(!groupColorMap[gid]){groupColorMap[gid]=GRP_COLORS[gcIdx%GRP_COLORS.length];gcIdx++;}return groupColorMap[gid];}
-function calcSeatCharge(t0,persons){const mins=(Date.now()-t0)/60000,r=settings.ratePerHour;return mins<=60?r*persons:Math.ceil((r+(r/60)*(mins-60))*persons);}
+
+// Early checkout: each person can have individual end time
+// earlyOuts: {personIndex: timestampMs} — persons who left early
+function calcSeatChargeWithEarlyOuts(t0, persons, earlyOuts){
+  // earlyOuts: array of end timestamps per person (length=persons, null=still running/checkout now)
+  const now=Date.now();
+  let total=0;
+  const r=settings.ratePerHour;
+  for(let i=0;i<persons;i++){
+    const endTime=earlyOuts&&earlyOuts[i]?earlyOuts[i]:now;
+    const mins=(endTime-t0)/60000;
+    const charge=mins<=60?r:Math.ceil(r+(r/60)*(mins-60));
+    total+=charge;
+  }
+  return total;
+}
+function calcSeatCharge(t0,persons){
+  const mins=(Date.now()-t0)/60000,r=settings.ratePerHour;
+  return mins<=60?r*persons:Math.ceil((r+(r/60)*(mins-60))*persons);
+}
+function calcSeatChargeAtTime(t0,t1,persons){
+  const mins=(t1-t0)/60000,r=settings.ratePerHour;
+  return mins<=60?r*persons:Math.ceil((r+(r/60)*(mins-60))*persons);
+}
 function calcCartTotal(){return Object.entries(cartItems).reduce((s,[id,qty])=>{const it=menuItems.find(m=>m.id===id);return it?s+it.price*qty:s;},0);}
 function getCartAddons(){return Object.entries(cartItems).map(([id,qty])=>{const it=menuItems.find(m=>m.id===id);return it?{name:it.name,price:it.price,qty}:null;}).filter(Boolean);}
 function fmtDur(t0){const s=Math.floor((Date.now()-t0)/1000);return[Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(n=>String(n).padStart(2,'0')).join(':');}
@@ -288,6 +349,7 @@ function todayISO(){return new Date().toISOString().slice(0,10);}
 function fmtDate(iso){if(!iso)return '—';const d=new Date(iso);return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}
 function allDates(){const dates=[...new Set(txns.map(t=>t.date))].sort((a,b)=>new Date(b)-new Date(a));if(!dates.includes(todayStr()))dates.unshift(todayStr());return dates;}
 function txnsForDate(d){return txns.filter(t=>t.date===d);}
+function nowTimeVal(){return new Date().toTimeString().slice(0,5);}
 
 function showNavLockToast(){const t=document.getElementById('nav-lock-toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 function lockNav(){_receiptActive=true;document.querySelectorAll('.hnbtn,.reset-btn').forEach(b=>b.classList.add('nav-locked'));}
@@ -346,10 +408,11 @@ function pinCancel(){_pinCallback=null;_pinActive=false;_pinValue='';document.re
 window.addEventListener('beforeunload',function(e){const active=seats.filter(s=>s.occupied).length;if(active>0){e.preventDefault();e.returnValue=`${active} seat(s) still active!`;return e.returnValue;}});
 
 function renderStats(){
-  const occ=seats.filter(s=>s.occupied).length,blk=seats.filter(s=>s.blocked).length;
+  const occ=seats.filter(s=>s.occupied).length,blk=seats.filter(s=>s.blocked).length,openFood=foodOrders.filter(f=>f.status==='open').length;
   document.getElementById('hdr-cafe-name').textContent=settings.cafeName;
   let html=`<div class="hstat"><span class="hstat-icon">🪑</span><div><div class="hstat-val">${occ}<span style="color:var(--text3);font-weight:400;font-size:11px">/${TOTAL_SEATS}</span></div><div class="hstat-lbl">Occupied</div></div></div>`;
   if(blk)html+=`<div class="hstat"><span class="hstat-icon">🔒</span><div><div class="hstat-val" style="color:var(--blue)">${blk}</div><div class="hstat-lbl">Reserved</div></div></div>`;
+  if(openFood)html+=`<div class="hstat"><span class="hstat-icon">🍽</span><div><div class="hstat-val" style="color:var(--purple)">${openFood}</div><div class="hstat-lbl">Food Orders</div></div></div>`;
   document.getElementById('stats').innerHTML=html;
 }
 
@@ -436,11 +499,12 @@ function renderFloor(){
       </div>`;
     } else if(seat.occupied){
       const c=getGrpColor(seat.groupId);
+      const earlyCount=seat.earlyOuts?Object.keys(seat.earlyOuts).length:0;
       html+=`<div class="seat occ" onclick="openCheckout('${seat.groupId}')">
         <span class="grp-dot" style="background:${c};box-shadow:0 0 6px ${c}80"></span>
         <div class="sn">#${num}</div>
         <div class="s-tim" id="t${seat.id}">${fmtDur(seat.t0)}</div>
-        <div class="s-grp">${seat.name||'—'} · ${seat.groupSize}p</div>
+        <div class="s-grp">${seat.name||'—'} · ${seat.groupSize}p${earlyCount>0?` · <span style="color:var(--green);font-weight:600">${earlyCount} left</span>`:''}</div>
       </div>`;
     } else {
       html+=`<div class="seat free" onclick="openFreeOptions(${seat.id})">
@@ -477,7 +541,7 @@ function doCheckin(startId){
   const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{const ai=a.id>=startId?a.id-startId:a.id+TOTAL_SEATS,bi=b.id>=startId?b.id-startId:b.id+TOTAL_SEATS;return ai-bi;});
   if(free.length<persons){alert(`Only ${free.length} free seats!`);return;}
   const toOcc=free.slice(0,persons).map(s=>s.id),gid='g'+Date.now(),t0=Date.now();
-  seats=seats.map(s=>toOcc.includes(s.id)?{...s,occupied:true,name,t0,groupId:gid,groupSize:persons}:s);
+  seats=seats.map(s=>toOcc.includes(s.id)?{...s,occupied:true,name,t0,groupId:gid,groupSize:persons,earlyOuts:{}}:s);
   saveAll();closeModal();if(currentView==='floor')renderFloor();
 }
 
@@ -521,11 +585,11 @@ function openBlockedOptions(id){
   const preOrderHTML=bi.preOrder&&bi.preOrder.length?`<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)"><div style="font-size:10px;color:var(--text3);margin-bottom:4px">🍽 Pre-ordered:</div>${bi.preOrder.map(a=>`<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);padding:1px 0"><span>${a.name} ×${a.qty}</span><span>${inr(a.price*a.qty)}</span></div>`).join('')}<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--gold);padding-top:4px;margin-top:4px;border-top:1px dashed var(--border)"><span>Total</span><span>${inr(bi.preOrder.reduce((s,a)=>s+a.price*a.qty,0))}</span></div></div>`:`<div style="font-size:11px;color:var(--text3);margin-top:4px">No pre-order</div>`;
   showModal(`<h3>Reserved — Seat #${String(id).padStart(2,'0')}</h3>
     <div class="bill-box">
-      <div class="brow"><span class="lbl">Name</span><span class="val" style="font-family:inherit">${bi.name||'—'}</span></div>
+      <div class="brow"><span class="lbl">Name</span><span class="val">${bi.name||'—'}</span></div>
       <div class="brow"><span class="lbl">Persons</span><span class="val">${bi.persons||'—'}</span></div>
-      <div class="brow"><span class="lbl">Date</span><span class="val" style="font-family:inherit">${fmtDate(bi.date)}</span></div>
+      <div class="brow"><span class="lbl">Date</span><span class="val">${fmtDate(bi.date)}</span></div>
       <div class="brow"><span class="lbl">Time</span><span class="val">${bi.time||'—'}</span></div>
-      ${bi.note?`<div class="brow"><span class="lbl">Note</span><span class="val" style="font-family:inherit;font-size:11px">${bi.note}</span></div>`:''}
+      ${bi.note?`<div class="brow"><span class="lbl">Note</span><span class="val" style="font-size:11px">${bi.note}</span></div>`:''}
       ${preOrderHTML}
     </div>
     <button class="btn-pri" style="margin-top:0" onclick="convertToCheckin(${id})">✓ Check In Now</button>
@@ -567,18 +631,33 @@ function unblockSeat(id){seats=seats.map(s=>s.id===id?{...s,blocked:false,blockI
 function openCheckout(gid){
   selectedMethod='cash';const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;
   const s0=grp[0],persons=s0.groupSize;
-  if(!coInfo||coInfo.gid!==gid)cartItems={};coInfo={gid,t0:s0.t0,persons};
+  if(!coInfo||coInfo.gid!==gid)cartItems={};
+  // Load earlyOuts from any seat in group
+  const existingEarlyOuts=s0.earlyOuts||{};
+  coInfo={gid,t0:s0.t0,persons,earlyOuts:{...existingEarlyOuts}};
   const seatNums=grp.map(s=>'#'+String(s.id).padStart(2,'0')).join(', ');
-  const sc=calcSeatCharge(s0.t0,persons);
+  const earlyCount=Object.keys(existingEarlyOuts).length;
+  const remainingPersons=persons-earlyCount;
+  const sc=calcCheckoutCharge(s0.t0,persons,coInfo.earlyOuts);
   const cats=[...new Set(menuItems.map(m=>m.category))];
   const menuHTML=cats.map(cat=>`<div style="margin-bottom:8px"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${cat}</div>${menuItems.filter(m=>m.category===cat).map(it=>`<div class="add-row"><div><span style="font-size:12px;color:var(--text)">${it.name}</span><span style="font-size:11px;color:var(--text3);margin-left:4px">${inr(it.price)}</span></div><div style="display:flex;align-items:center;gap:5px"><button class="cbtn" style="width:24px;height:24px;font-size:13px" onclick="chgCart('${it.id}',-1)">−</button><span style="font-size:12px;min-width:14px;text-align:center;color:var(--text)" id="cart-${it.id}">${cartItems[it.id]||0}</span><button class="cbtn" style="width:24px;height:24px;font-size:13px" onclick="chgCart('${it.id}',1)">+</button></div></div>`).join('')}</div>`).join('');
+
+  let earlyOutBadge='';
+  if(earlyCount>0){
+    earlyOutBadge=`<div class="early-summary"><div class="early-summary-title">✓ Early checkouts recorded</div>`;
+    Object.entries(existingEarlyOuts).forEach(([pi,ts])=>{earlyOutBadge+=`<span class="early-person-chip">Person ${parseInt(pi)+1} · ${new Date(ts).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span>`;});
+    earlyOutBadge+='</div>';
+  }
+
   showModal(`<h3>Checkout — ${persons}p · ${s0.name}</h3>
+    ${earlyOutBadge}
     <div class="bill-box">
-      <div class="brow"><span class="lbl">Customer</span><span class="val" style="font-family:inherit">${s0.name}</span></div>
-      <div class="brow"><span class="lbl">Seats</span><span class="val" style="font-family:inherit;font-size:10px">${seatNums}</span></div>
+      <div class="brow"><span class="lbl">Customer</span><span class="val">${s0.name}</span></div>
+      <div class="brow"><span class="lbl">Seats</span><span class="val" style="font-size:10px">${seatNums}</span></div>
       <div class="brow"><span class="lbl">Check-in</span><span class="val">${new Date(s0.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span></div>
       <div class="brow"><span class="lbl">Duration</span><span class="val" id="co-d">${fmtDur(s0.t0)}</span></div>
       <div class="brow"><span class="lbl">Seat charge</span><span class="val" id="co-sc">${inr(sc)}</span></div>
+      ${earlyCount>0?`<div class="brow"><span class="lbl" style="color:var(--green)">Early outs</span><span class="val" style="color:var(--green)">${earlyCount} person${earlyCount>1?'s':''} · ${remainingPersons} still here</span></div>`:''}
       <div class="brow"><span class="lbl">Food & drinks</span><span class="val" id="co-ao">₹0</span></div>
       <div style="border-top:1px dashed var(--border2);margin:8px 0"></div>
       <div class="btotal" id="co-total">${inr(sc)}</div>
@@ -593,17 +672,112 @@ function openCheckout(gid){
       <div class="pay-row"><button class="pbtn sel" id="pm-cash" onclick="selM('cash')">CASH</button><button class="pbtn" id="pm-upi" onclick="selM('upi')">UPI</button><button class="pbtn" id="pm-card" onclick="selM('card')">CARD</button></div>
     </div>
     <button class="btn-pri" id="co-btn" onclick="doCheckout('${gid}')">Confirm Checkout — ${inr(sc)}</button>
+    <button class="btn-sec" style="border-color:var(--green);color:var(--green)" onclick="openEarlyCheckout('${gid}')">🚶 Early Person Checkout</button>
     <button class="btn-sec" style="border-color:var(--gold);color:var(--gold)" onclick="requirePIN('Edit/Cancel Session',()=>openEditSession('${gid}'))">✎ Edit / Cancel Session</button>
     <button class="btn-sec" onclick="closeModal()">Keep Session Running</button>`);
   if(window._coIv)clearInterval(window._coIv);window._coIv=setInterval(refreshCoTotals,1000);
 }
+
+// ─── Calculate charge with earlyOuts ───
+function calcCheckoutCharge(t0,persons,earlyOuts){
+  const now=Date.now();const r=settings.ratePerHour;let total=0;
+  for(let i=0;i<persons;i++){
+    const endTime=(earlyOuts&&earlyOuts[i])?earlyOuts[i]:now;
+    const mins=(endTime-t0)/60000;
+    total+=(mins<=60?r:Math.ceil(r+(r/60)*(mins-60)));
+  }
+  return total;
+}
+
+// ─── EARLY PERSON CHECKOUT ───
+function openEarlyCheckout(gid){
+  if(window._coIv){clearInterval(window._coIv);window._coIv=null;}
+  const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;
+  const s0=grp[0],persons=s0.groupSize;
+  const earlyOuts=coInfo&&coInfo.gid===gid?{...coInfo.earlyOuts}:{...s0.earlyOuts||{}};
+  let rowsHTML='';
+  for(let i=0;i<persons;i++){
+    const alreadyLeft=earlyOuts[i];
+    const leftTime=alreadyLeft?new Date(alreadyLeft).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+    if(alreadyLeft){
+      rowsHTML+=`<div class="person-row early-out">
+        <div class="person-row-num">P${i+1}</div>
+        <div style="flex:1;padding:0 8px"><span style="font-size:11px;color:var(--green);font-weight:600">✓ Left at ${leftTime}</span></div>
+        <button onclick="undoEarlyOut('${gid}',${i})" style="font-size:10px;padding:3px 8px;border:1px solid rgba(239,68,68,.4);border-radius:5px;background:transparent;color:var(--red);cursor:pointer">Undo</button>
+      </div>`;
+    } else {
+      rowsHTML+=`<div class="person-row" id="prow-${i}">
+        <div class="person-row-num">P${i+1}</div>
+        <div style="flex:1;padding:0 8px">
+          <span class="person-early-label">Left at:</span>
+          <input class="person-early-input" type="time" id="early-time-${i}" value="${nowTimeVal()}">
+        </div>
+        <button onclick="markEarlyOut('${gid}',${i})" style="font-size:11px;padding:5px 10px;border:none;border-radius:6px;background:var(--green);color:#fff;cursor:pointer;font-weight:600">Mark</button>
+      </div>`;
+    }
+  }
+  const earlyCount=Object.keys(earlyOuts).length;
+  showModal(`<h3>🚶 Early Person Checkout</h3>
+    <div class="purple-box" style="background:rgba(22,163,74,.08);border-color:rgba(22,163,74,.2);color:var(--green)">
+      Each person can have a different end time. The seat charge will be calculated individually per person based on when they left.
+    </div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">${s0.name} · ${persons} persons · Check-in: ${new Date(s0.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
+    <div id="early-rows">${rowsHTML}</div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin:10px 0;display:flex;justify-content:space-between">
+      <span style="font-size:12px;color:var(--text3)">Early checkouts marked</span>
+      <span style="font-size:14px;font-weight:700;color:var(--green)" id="early-count-disp">${earlyCount} of ${persons}</span>
+    </div>
+    <button class="btn-pri grn" onclick="saveEarlyOuts('${gid}')">✓ Save & Back to Checkout</button>
+    <button class="btn-sec" onclick="openCheckout('${gid}')">← Back</button>`);
+}
+
+function markEarlyOut(gid,personIdx){
+  const timeEl=document.getElementById('early-time-'+personIdx);if(!timeEl)return;
+  const timeVal=timeEl.value;if(!timeVal){alert('Please set a time');return;}
+  const grp=seats.filter(s=>s.groupId===gid);const s0=grp[0];
+  // Build timestamp from today's date + entered time
+  const [hh,mm]=timeVal.split(':').map(Number);
+  const d=new Date(s0.t0);d.setHours(hh,mm,0,0);
+  let ts=d.getTime();
+  if(ts<s0.t0){alert('Exit time cannot be before check-in time.');return;}
+  if(ts>Date.now()){alert('Exit time cannot be in the future.');return;}
+  if(!coInfo||coInfo.gid!==gid)coInfo={gid,t0:s0.t0,persons:s0.groupSize,earlyOuts:{...s0.earlyOuts||{}}};
+  coInfo.earlyOuts[personIdx]=ts;
+  // Update seat earlyOuts
+  seats=seats.map(s=>s.groupId===gid?{...s,earlyOuts:{...coInfo.earlyOuts}}:s);
+  saveAll();
+  openEarlyCheckout(gid);
+}
+
+function undoEarlyOut(gid,personIdx){
+  if(!coInfo||coInfo.gid!==gid){const grp=seats.filter(s=>s.groupId===gid);const s0=grp[0];coInfo={gid,t0:s0.t0,persons:s0.groupSize,earlyOuts:{...s0.earlyOuts||{}}};}
+  delete coInfo.earlyOuts[personIdx];
+  seats=seats.map(s=>s.groupId===gid?{...s,earlyOuts:{...coInfo.earlyOuts}}:s);
+  saveAll();
+  openEarlyCheckout(gid);
+}
+
+function saveEarlyOuts(gid){
+  // earlyOuts already saved to seats in markEarlyOut; just go back to checkout
+  openCheckout(gid);
+}
+
 function chgCart(itemId,d){cartItems[itemId]=Math.max(0,(cartItems[itemId]||0)+d);if(!cartItems[itemId])delete cartItems[itemId];const el=document.getElementById('cart-'+itemId);if(el)el.textContent=cartItems[itemId]||0;refreshCoTotals();}
-function refreshCoTotals(){if(!coInfo)return;const sc=calcSeatCharge(coInfo.t0,coInfo.persons),ao=calcCartTotal(),total=sc+ao;const d=document.getElementById('co-d'),s=document.getElementById('co-sc'),a=document.getElementById('co-ao'),t=document.getElementById('co-total'),b=document.getElementById('co-btn');if(d)d.textContent=fmtDur(coInfo.t0);if(s)s.textContent=inr(sc);if(a)a.textContent=inr(ao);if(t)t.textContent=inr(total);if(b)b.textContent=`Confirm Checkout — ${inr(total)}`;}
+function refreshCoTotals(){
+  if(!coInfo)return;
+  const sc=calcCheckoutCharge(coInfo.t0,coInfo.persons,coInfo.earlyOuts);
+  const ao=calcCartTotal(),total=sc+ao;
+  const d=document.getElementById('co-d'),s=document.getElementById('co-sc'),a=document.getElementById('co-ao'),t=document.getElementById('co-total'),b=document.getElementById('co-btn');
+  if(d)d.textContent=fmtDur(coInfo.t0);if(s)s.textContent=inr(sc);if(a)a.textContent=inr(ao);if(t)t.textContent=inr(total);if(b)b.textContent=`Confirm Checkout — ${inr(total)}`;
+}
 function selM(m){selectedMethod=m;['cash','upi','card'].forEach(x=>{const el=document.getElementById('pm-'+x);if(el)el.classList.toggle('sel',x===m);});}
 function doCheckout(gid){
   if(window._coIv){clearInterval(window._coIv);window._coIv=null;}
   const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;
-  const s0=grp[0],persons=s0.groupSize,sc=calcSeatCharge(s0.t0,persons),ao=calcCartTotal(),total=sc+ao;
+  const s0=grp[0],persons=s0.groupSize;
+  const earlyOuts=coInfo&&coInfo.gid===gid?coInfo.earlyOuts:s0.earlyOuts||{};
+  const sc=calcCheckoutCharge(s0.t0,persons,earlyOuts);
+  const ao=calcCartTotal(),total=sc+ao;
   const phone=document.getElementById('co-phone')?.value.trim()||'';
   if(phone&&!/^[0-9]{10}$/.test(phone)){alert('Enter valid 10-digit phone or leave blank.');return;}
   const threshold=settings.largeBillThreshold||500;
@@ -612,9 +786,20 @@ function doCheckout(gid){
 }
 function finalizeCheckout(gid,phone=''){
   const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;
-  const s0=grp[0],persons=s0.groupSize,sc=calcSeatCharge(s0.t0,persons),ao=calcCartTotal(),addons=getCartAddons();
-  const tx={id:Date.now(),seatIds:grp.map(s=>s.id),name:s0.name,phone:phone||'',persons,t0:s0.t0,t1:Date.now(),seatCharge:sc,addons,totalAmount:sc+ao,method:selectedMethod,date:todayStr()};
-  seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0}:s);
+  const s0=grp[0],persons=s0.groupSize;
+  const earlyOuts=coInfo&&coInfo.gid===gid?coInfo.earlyOuts:s0.earlyOuts||{};
+  const sc=calcCheckoutCharge(s0.t0,persons,earlyOuts);
+  const ao=calcCartTotal(),addons=getCartAddons();
+  // Build per-person breakdown
+  const personBreakdown=[];const now=Date.now();const r=settings.ratePerHour;
+  for(let i=0;i<persons;i++){
+    const endTime=earlyOuts[i]||now;
+    const mins=(endTime-s0.t0)/60000;
+    const charge=mins<=60?r:Math.ceil(r+(r/60)*(mins-60));
+    personBreakdown.push({person:i+1,endTime,charge,early:!!earlyOuts[i]});
+  }
+  const tx={id:Date.now(),seatIds:grp.map(s=>s.id),name:s0.name,phone:phone||'',persons,t0:s0.t0,t1:now,seatCharge:sc,addons,totalAmount:sc+ao,method:selectedMethod,date:todayStr(),earlyOuts:earlyOuts,personBreakdown,txType:'session'};
+  seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0,earlyOuts:{}}:s);
   delete groupColorMap[gid];txns=[tx,...txns];cartItems={};coInfo=null;
   saveAll();showReceipt(tx);if(currentView==='floor')renderFloor();
 }
@@ -651,14 +836,14 @@ function doEditSession(gid){
   const newPersons=parseInt(document.getElementById('es-p')?.textContent)||0;
   if(newT0&&newT0>Date.now()){alert('Start time cannot be in the future.');return;}
   const grp=seats.filter(s=>s.groupId===gid),currentPersons=grp.length;
-  if(newPersons<currentPersons){const toFree=grp.slice(newPersons).map(s=>s.id);seats=seats.map(s=>{if(s.groupId===gid&&toFree.includes(s.id))return{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0};if(s.groupId===gid)return{...s,name:name||s.name,groupSize:newPersons,...(newT0?{t0:newT0}:{})};return s;});}
-  else if(newPersons>currentPersons){const needed=newPersons-currentPersons,refId=grp[grp.length-1].id;const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{const ai=a.id>refId?a.id-refId:a.id+TOTAL_SEATS,bi=b.id>refId?b.id-refId:b.id+TOTAL_SEATS;return ai-bi;});if(free.length<needed){alert(`Only ${free.length} free seat(s).`);return;}const toOcc=free.slice(0,needed).map(s=>s.id),t0use=newT0||grp[0].t0;seats=seats.map(s=>{if(toOcc.includes(s.id))return{...s,occupied:true,name:name||grp[0].name,t0:t0use,groupId:gid,groupSize:newPersons};if(s.groupId===gid)return{...s,name:name||s.name,groupSize:newPersons,...(newT0?{t0:newT0}:{})};return s;});}
+  if(newPersons<currentPersons){const toFree=grp.slice(newPersons).map(s=>s.id);seats=seats.map(s=>{if(s.groupId===gid&&toFree.includes(s.id))return{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0,earlyOuts:{}};if(s.groupId===gid)return{...s,name:name||s.name,groupSize:newPersons,...(newT0?{t0:newT0}:{})};return s;});}
+  else if(newPersons>currentPersons){const needed=newPersons-currentPersons,refId=grp[grp.length-1].id;const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{const ai=a.id>refId?a.id-refId:a.id+TOTAL_SEATS,bi=b.id>refId?b.id-refId:b.id+TOTAL_SEATS;return ai-bi;});if(free.length<needed){alert(`Only ${free.length} free seat(s).`);return;}const toOcc=free.slice(0,needed).map(s=>s.id),t0use=newT0||grp[0].t0;seats=seats.map(s=>{if(toOcc.includes(s.id))return{...s,occupied:true,name:name||grp[0].name,t0:t0use,groupId:gid,groupSize:newPersons,earlyOuts:{}};if(s.groupId===gid)return{...s,name:name||s.name,groupSize:newPersons,...(newT0?{t0:newT0}:{})};return s;});}
   else{seats=seats.map(s=>s.groupId===gid?{...s,name:name||s.name,...(newT0&&newT0>0?{t0:newT0}:{})}:s);}
   if(coInfo&&coInfo.gid===gid){coInfo.persons=newPersons;if(newT0)coInfo.t0=newT0;}
   saveAll();closeModal();if(currentView==='floor')renderFloor();
 }
 function confirmCancelSession(gid){const grp=seats.filter(s=>s.groupId===gid),s0=grp[0];showModal(`<h3>Cancel Session?</h3><div class="warn-box">⚠ Frees all ${s0.groupSize} seat(s) with NO charge.</div><button class="btn-pri red" style="margin-top:0" onclick="doCancelSession('${gid}')">Yes — No Charge</button><button class="btn-sec" onclick="openCheckout('${gid}')">← Back to Checkout</button>`);}
-function doCancelSession(gid){seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0}:s);delete groupColorMap[gid];cartItems={};coInfo=null;saveAll();closeModal();if(currentView==='floor')renderFloor();}
+function doCancelSession(gid){seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0,earlyOuts:{}}:s);delete groupColorMap[gid];cartItems={};coInfo=null;saveAll();closeModal();if(currentView==='floor')renderFloor();}
 
 // ═══ RECEIPT ═══
 function showReceipt(tx){
@@ -667,20 +852,35 @@ function showReceipt(tx){
   const aoHTML=tx.addons&&tx.addons.length?tx.addons.map(a=>`<div class="brow"><span class="lbl">${a.name} ×${a.qty}</span><span class="val">${inr(a.price*a.qty)}</span></div>`).join(''):'';
   const inT=new Date(tx.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
   const outT=new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+
+  // Per-person breakdown if early outs exist
+  let earlyBreakdownHTML='';
+  if(tx.personBreakdown&&tx.personBreakdown.some(p=>p.early)){
+    earlyBreakdownHTML=`<div style="font-size:10px;color:var(--text3);margin:5px 0 2px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Per-Person Seat Charge</div>`;
+    tx.personBreakdown.forEach(p=>{
+      const endT=new Date(p.endTime).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+      earlyBreakdownHTML+=`<div class="brow"><span class="lbl">Person ${p.person}${p.early?' (left '+endT+')':''}</span><span class="val">${inr(p.charge)}</span></div>`;
+    });
+  }
+
+  // Food-only receipts
+  const isFoodOnly=tx.txType==='food';
+
   showModal(`
     <div style="text-align:center;margin-bottom:14px">
       <div style="font-size:17px;font-weight:800;letter-spacing:1px;color:var(--text)">${settings.cafeName}</div>
       ${settings.address?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${settings.address}</div>`:''}
       <div style="font-size:11px;color:var(--text3);margin-top:3px">${new Date(tx.t1).toLocaleString('en-IN')}</div>
+      ${isFoodOnly?'<span class="tag food" style="margin-top:6px;display:inline-block">Food Bill Only</span>':''}
     </div>
     <div class="bill-box" style="font-size:12px">
-      <div class="brow"><span class="lbl">Customer</span><span class="val" style="font-family:inherit;font-weight:700;letter-spacing:.5px">${tx.name.toUpperCase()}</span></div>
-      <div class="brow"><span class="lbl">Seats (${tx.persons}p)</span><span class="val" style="font-family:inherit;font-size:10px">${sl}</span></div>
+      <div class="brow"><span class="lbl">Customer</span><span class="val" style="font-weight:700;letter-spacing:.5px">${tx.name.toUpperCase()}</span></div>
+      ${!isFoodOnly?`<div class="brow"><span class="lbl">Seats (${tx.persons}p)</span><span class="val" style="font-size:10px">${sl}</span></div>
       <div class="brow"><span class="lbl">In</span><span class="val">${inT}</span></div>
       <div class="brow"><span class="lbl">Out</span><span class="val">${outT}</span></div>
       <div class="brow"><span class="lbl">Duration</span><span class="val">${fmtMins(tx.t1-tx.t0)}</span></div>
       <div class="brow"><span class="lbl">Rate</span><span class="val">${inr(settings.ratePerHour)}/hr/seat</span></div>
-      <div class="brow"><span class="lbl">Seat charge</span><span class="val">${inr(tx.seatCharge)}</span></div>
+      ${earlyBreakdownHTML||`<div class="brow"><span class="lbl">Seat charge</span><span class="val">${inr(tx.seatCharge)}</span></div>`}`:''}
       ${aoHTML?`<div style="font-size:10px;color:var(--text3);margin:5px 0 2px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Food & Bev</div>${aoHTML}`:''}
       <div style="border-top:1px dashed var(--border2);margin:8px 0"></div>
       <div class="brow"><span class="lbl">Payment</span><span class="tag ${tx.method}">${tx.method.toUpperCase()}</span></div>
@@ -695,7 +895,7 @@ function showReceipt(tx){
       ${tx.phone?`<button class="btn-pri whatsapp" style="flex:1;margin-top:0;border-radius:10px" onclick="sendWhatsApp(${tx.id})">💬 WA</button>`:''}
       <button class="btn-pri" style="flex:2;margin-top:0;border-radius:10px;font-size:14px" onclick="askPrintBeforeDone(${tx.id})">Done ✓</button>
     </div>
-    <button class="btn-sec" style="margin-top:8px;border-color:var(--gold);color:var(--gold);border-width:1.5px;border-radius:10px" onclick="editReceiptAddons(${tx.id})">← Add more items</button>
+    ${!isFoodOnly?`<button class="btn-sec" style="margin-top:8px;border-color:var(--gold);color:var(--gold);border-width:1.5px;border-radius:10px" onclick="editReceiptAddons(${tx.id})">← Add more items</button>`:''}
     <div style="text-align:center;font-size:10px;color:var(--text3);margin-top:8px">Press <strong style="color:var(--text2)">Done</strong> to release seats</div>`);
 }
 function askPrintBeforeDone(txId){
@@ -741,22 +941,264 @@ function saveEditedAddons(txId){
   window._editCart={};window._editTxId=null;saveAll();if(currentView==='report')renderReport();showReceipt(tx);
 }
 
-function sendWhatsApp(txId){const tx=txns.find(t=>t.id===txId);if(!tx||!tx.phone){alert('No phone.');return;}const ao=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;const msg=`Hi ${tx.name} 👋\n\nThank you for visiting ${settings.cafeName} 🎲\n\n🧾 Your Bill:\nSeats: ${tx.persons}\nDuration: ${fmtMins(tx.t1-tx.t0)}\nSeat charge: ${inr(tx.seatCharge)}${ao?`\nFood & drinks: ${inr(ao)}`:''}\n\n✅ Total Paid: ${inr(tx.totalAmount)} (${tx.method.toUpperCase()})\n\nVisit us again! 😊`;window.open(`https://wa.me/91${tx.phone}?text=${encodeURIComponent(msg)}`);}
+function sendWhatsApp(txId){
+  const tx=txns.find(t=>t.id===txId);if(!tx||!tx.phone){alert('No phone.');return;}
+  const ao=tx.addons?tx.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
+  const isFoodOnly=tx.txType==='food';
+  let msg=`Hi ${tx.name} 👋\n\nThank you for visiting ${settings.cafeName} 🎲\n\n🧾 Your Bill:`;
+  if(!isFoodOnly){msg+=`\nSeats: ${tx.persons}\nDuration: ${fmtMins(tx.t1-tx.t0)}\nSeat charge: ${inr(tx.seatCharge)}`;}
+  if(ao)msg+=`\nFood & drinks: ${inr(ao)}`;
+  msg+=`\n\n✅ Total Paid: ${inr(tx.totalAmount)} (${tx.method.toUpperCase()})\n\nVisit us again! 😊`;
+  window.open(`https://wa.me/91${tx.phone}?text=${encodeURIComponent(msg)}`);
+}
 
-// ═══ PRINT ═══
+// ═══ FOOD-ONLY BILLING ═══
+let _foodCart={};
+let _activeFoodOrderId=null;
+
+function renderFood(){
+  const openOrders=foodOrders.filter(f=>f.status==='open');
+  const todayClosedOrders=foodOrders.filter(f=>f.status==='closed'&&f.date===todayStr());
+  const todayFoodRev=todayClosedOrders.reduce((s,f)=>s+f.totalAmount,0);
+
+  let html=`<div class="food-wrap">
+    <div class="food-header">
+      <div>
+        <div class="food-title">🍽 Food Bill</div>
+        <div class="food-subtitle">Food & beverage orders without seat billing · ${openOrders.length} open</div>
+      </div>
+      <button class="food-new-btn" onclick="openNewFoodOrder()">+ New Order</button>
+    </div>`;
+
+  if(todayFoodRev>0){
+    html+=`<div style="background:var(--purple-bg);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--purple)">Today's food revenue (${todayClosedOrders.length} orders)</span>
+      <span style="font-size:18px;font-weight:800;color:var(--purple)">${inr(todayFoodRev)}</span>
+    </div>`;
+  }
+
+  if(openOrders.length>0){
+    html+=`<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-weight:500">Open Orders</div>`;
+    openOrders.forEach(order=>{
+      const itemList=order.items.map(i=>`${i.name}×${i.qty}`).join(', ');
+      html+=`<div class="food-order-card active-order" onclick="openFoodOrderCheckout('${order.id}')">
+        <div class="fo-head">
+          <div>
+            <div class="fo-name">${order.name}</div>
+            <div class="fo-time">${new Date(order.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="fo-amt">${inr(order.totalAmount)}</div>
+            <span class="fo-status open">OPEN</span>
+          </div>
+        </div>
+        <div class="fo-items">${itemList||'No items yet'}</div>
+      </div>`;
+    });
+  }
+
+  if(todayClosedOrders.length>0){
+    html+=`<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;margin-top:12px;font-weight:500">Closed Today</div>`;
+    todayClosedOrders.slice(0,5).forEach(order=>{
+      const itemList=order.items.map(i=>`${i.name}×${i.qty}`).join(', ');
+      html+=`<div class="food-order-card" onclick="reprintFoodReceipt('${order.id}')">
+        <div class="fo-head">
+          <div>
+            <div class="fo-name">${order.name}</div>
+            <div class="fo-time">${new Date(order.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})} → ${new Date(order.closedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="fo-amt">${inr(order.totalAmount)}</div>
+            <span class="tag ${order.method}" style="display:inline-block;margin-top:3px">${order.method.toUpperCase()}</span>
+          </div>
+        </div>
+        <div class="fo-items">${itemList}</div>
+      </div>`;
+    });
+  }
+
+  if(openOrders.length===0&&todayClosedOrders.length===0){
+    html+=`<div class="empty">No food orders today.<br>Tap <strong>+ New Order</strong> to start one.</div>`;
+  }
+  html+='</div>';
+  document.getElementById('content').innerHTML=html;
+}
+
+function openNewFoodOrder(){
+  showModal(`<h3 style="color:var(--purple)">🍽 New Food Order</h3>
+    <div class="fgrp"><label class="flabel">Customer name / table</label>
+      <input id="fo-name" placeholder="e.g. Table 3, Ravi..." autocomplete="off">
+    </div>
+    <div class="purple-box">Food-only bill — no seat charge. Use this for takeaway, walk-in food orders, or guests not using play area.</div>
+    <button class="btn-pri purple" style="margin-top:0" onclick="startFoodOrder()">Start Order</button>
+    <button class="btn-sec" onclick="closeModal()">Cancel</button>`);
+  setTimeout(()=>{document.getElementById('fo-name')?.focus();},100);
+}
+
+function startFoodOrder(){
+  let name=document.getElementById('fo-name')?.value.trim();
+  if(!name){name='Table '+Math.floor(Math.random()*20+1);}
+  const order={id:'fo'+Date.now(),name:name.toUpperCase(),items:[],totalAmount:0,status:'open',createdAt:Date.now(),date:todayStr(),method:'cash'};
+  foodOrders=[order,...foodOrders];
+  saveAll();closeModal();
+  openFoodOrderCheckout(order.id);
+}
+
+function openFoodOrderCheckout(orderId){
+  const order=foodOrders.find(f=>f.id===orderId);if(!order)return;
+  _activeFoodOrderId=orderId;
+  // Build food cart from existing items
+  _foodCart={};
+  order.items.forEach(item=>{const it=menuItems.find(m=>m.name===item.name);if(it)_foodCart[it.id]=item.qty;});
+
+  const cats=[...new Set(menuItems.map(m=>m.category))];
+  const menuHTML=cats.map(cat=>`<div style="margin-bottom:8px"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${cat}</div>${menuItems.filter(m=>m.category===cat).map(it=>`<div class="add-row"><div><span style="font-size:12px;color:var(--text)">${it.name}</span><span style="font-size:11px;color:var(--text3);margin-left:4px">${inr(it.price)}</span></div><div style="display:flex;align-items:center;gap:5px"><button class="cbtn" style="width:24px;height:24px;font-size:13px" onclick="chgFoodCart('${it.id}',-1)">−</button><span style="font-size:12px;min-width:14px;text-align:center;color:var(--text)" id="fc-${it.id}">${_foodCart[it.id]||0}</span><button class="cbtn" style="width:24px;height:24px;font-size:13px" onclick="chgFoodCart('${it.id}',1)">+</button></div></div>`).join('')}</div>`).join('');
+
+  const total=order.items.reduce((s,i)=>s+i.price*i.qty,0);
+  showModal(`<h3 style="color:var(--purple)">🍽 ${order.name}</h3>
+    <div style="background:var(--purple-bg);border:1px solid rgba(124,58,237,.2);border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--purple)">Food-only order · ${new Date(order.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span>
+      <span style="font-size:16px;font-weight:800;color:var(--purple)" id="fc-total">${inr(total)}</span>
+    </div>
+    <div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:9px;padding:8px 10px;background:var(--bg3);margin-bottom:10px">${menuHTML}</div>
+    <div class="phone-box">
+      <label class="flabel">📱 WhatsApp number <span style="font-size:10px;font-weight:400;color:var(--blue)">(optional)</span></label>
+      <input id="fo-phone" type="tel" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric" value="${order.phone||''}">
+    </div>
+    <div class="fgrp"><label class="flabel">Payment method</label>
+      <div class="pay-row"><button class="pbtn sel" id="fpm-cash" onclick="selFM('cash')">CASH</button><button class="pbtn" id="fpm-upi" onclick="selFM('upi')">UPI</button><button class="pbtn" id="fpm-card" onclick="selFM('card')">CARD</button></div>
+    </div>
+    <button class="btn-pri purple" id="fo-checkout-btn" onclick="doFoodCheckout('${orderId}')">Checkout — ${inr(total)}</button>
+    <button class="btn-sec" onclick="saveFoodDraft('${orderId}')">💾 Save & Continue Later</button>
+    <button class="btn-sec" style="border-color:var(--red);color:var(--red)" onclick="cancelFoodOrder('${orderId}')">✕ Cancel Order</button>`);
+
+  // Pre-select method
+  selFM(order.method||'cash');
+}
+
+let _foodMethod='cash';
+function selFM(m){_foodMethod=m;['cash','upi','card'].forEach(x=>{const el=document.getElementById('fpm-'+x);if(el)el.classList.toggle('sel',x===m);});}
+
+function chgFoodCart(itemId,d){
+  _foodCart[itemId]=Math.max(0,(_foodCart[itemId]||0)+d);
+  if(!_foodCart[itemId])delete _foodCart[itemId];
+  const el=document.getElementById('fc-'+itemId);if(el)el.textContent=_foodCart[itemId]||0;
+  const total=Object.entries(_foodCart).reduce((s,[id,qty])=>{const it=menuItems.find(m=>m.id===id);return it?s+it.price*qty:s;},0);
+  const te=document.getElementById('fc-total');if(te)te.textContent=inr(total);
+  const btn=document.getElementById('fo-checkout-btn');if(btn)btn.textContent=`Checkout — ${inr(total)}`;
+}
+
+function saveFoodDraft(orderId){
+  const order=foodOrders.find(f=>f.id===orderId);if(!order)return;
+  const items=Object.entries(_foodCart).map(([id,qty])=>{const it=menuItems.find(m=>m.id===id);return it?{name:it.name,price:it.price,qty}:null;}).filter(Boolean);
+  const total=items.reduce((s,i)=>s+i.price*i.qty,0);
+  const phone=document.getElementById('fo-phone')?.value.trim()||'';
+  order.items=items;order.totalAmount=total;order.phone=phone;order.method=_foodMethod;
+  saveAll();closeModal();if(currentView==='food')renderFood();
+}
+
+function doFoodCheckout(orderId){
+  const order=foodOrders.find(f=>f.id===orderId);if(!order)return;
+  const items=Object.entries(_foodCart).map(([id,qty])=>{const it=menuItems.find(m=>m.id===id);return it?{name:it.name,price:it.price,qty}:null;}).filter(Boolean);
+  if(!items.length){alert('Please add at least one item.');return;}
+  const total=items.reduce((s,i)=>s+i.price*i.qty,0);
+  const phone=document.getElementById('fo-phone')?.value.trim()||'';
+  if(phone&&!/^[0-9]{10}$/.test(phone)){alert('Enter valid 10-digit phone or leave blank.');return;}
+  // Close the food order
+  order.items=items;order.totalAmount=total;order.status='closed';order.closedAt=Date.now();order.phone=phone;order.method=_foodMethod;
+  // Also record as transaction for report
+  const tx={id:Date.now(),seatIds:[],name:order.name,phone:phone||'',persons:0,t0:order.createdAt,t1:Date.now(),seatCharge:0,addons:items,totalAmount:total,method:_foodMethod,date:todayStr(),txType:'food',foodOrderId:orderId};
+  txns=[tx,...txns];
+  saveAll();renderStats();showFoodReceipt(tx);if(currentView==='food')renderFood();
+}
+
+function showFoodReceipt(tx){
+  lockNav();
+  const aoHTML=tx.addons&&tx.addons.length?tx.addons.map(a=>`<div class="brow"><span class="lbl">${a.name} ×${a.qty}</span><span class="val">${inr(a.price*a.qty)}</span></div>`).join(''):'<div class="brow"><span class="lbl" style="color:var(--text3)">No items</span></div>';
+  showModal(`
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="font-size:17px;font-weight:800;letter-spacing:1px;color:var(--text)">${settings.cafeName}</div>
+      ${settings.address?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${settings.address}</div>`:''}
+      <div style="font-size:11px;color:var(--text3);margin-top:3px">${new Date(tx.t1).toLocaleString('en-IN')}</div>
+      <span class="tag food" style="margin-top:6px;display:inline-block">🍽 Food Bill Only</span>
+    </div>
+    <div class="bill-box" style="font-size:12px">
+      <div class="brow"><span class="lbl">Customer</span><span class="val" style="font-weight:700;letter-spacing:.5px">${tx.name.toUpperCase()}</span></div>
+      <div style="font-size:10px;color:var(--text3);margin:5px 0 2px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Items</div>
+      ${aoHTML}
+      <div style="border-top:1px dashed var(--border2);margin:8px 0"></div>
+      <div class="brow"><span class="lbl">Payment</span><span class="tag ${tx.method}">${tx.method.toUpperCase()}</span></div>
+      <div style="border-top:2px solid var(--purple);margin:8px 0"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">
+        <span style="font-size:13px;font-weight:700;color:var(--text3);letter-spacing:1px">TOTAL</span>
+        <span style="font-size:24px;font-weight:800;color:var(--purple);font-variant-numeric:tabular-nums">${inr(tx.totalAmount)}</span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-sec" style="flex:1;margin-top:0;border-radius:10px" onclick="printFoodR(${tx.id})">🖨️ Print</button>
+      ${tx.phone?`<button class="btn-pri whatsapp" style="flex:1;margin-top:0;border-radius:10px" onclick="sendWhatsApp(${tx.id})">💬 WA</button>`:''}
+      <button class="btn-pri purple" style="flex:2;margin-top:0;border-radius:10px;font-size:14px" onclick="doneReceipt()">Done ✓</button>
+    </div>
+    <div style="text-align:center;font-size:10px;color:var(--text3);margin-top:8px">Press <strong style="color:var(--text2)">Done</strong> to close</div>`);
+}
+
+function reprintFoodReceipt(orderId){
+  const tx=txns.find(t=>t.foodOrderId===orderId);
+  if(tx)showFoodReceipt(tx);
+}
+
+function cancelFoodOrder(orderId){
+  if(!confirm('Cancel this food order? It will be removed.'))return;
+  foodOrders=foodOrders.filter(f=>f.id!==orderId);
+  _activeFoodOrderId=null;_foodCart={};
+  saveAll();renderStats();closeModal();if(currentView==='food')renderFood();
+}
+
+function printFoodR(txId){
+  const tx=txns.find(t=>t.id===txId);if(!tx)return;
+  const dateStr=new Date(tx.t1).toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+  const timeStr=new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
+  const addonRows=tx.addons&&tx.addons.length?tx.addons.map(a=>`<tr><td style="padding:4px 0;font-size:13px">${a.name} <span style="color:#888">×${a.qty}</span></td><td style="text-align:right;font-size:13px;font-family:'Courier New',monospace;font-weight:600">Rs.${Math.round(a.price*a.qty)}</td></tr>`).join(''):'';
+  const html=`<!DOCTYPE html><html><head><title>Food Receipt</title><meta charset="UTF-8"><style>@page{size:80mm auto;margin:4mm 4mm 18mm 4mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.5;width:72mm;background:#fff;color:#111}.hdr{text-align:center;padding:6px 0 4px;border-bottom:2px solid #111;margin-bottom:8px}.hdr-name{font-size:20px;font-weight:900;letter-spacing:2px;text-transform:uppercase}.hdr-meta{font-size:11px;color:#666;margin-top:4px}.food-badge{display:inline-block;background:#7c3aed;color:#fff;font-size:10px;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:4px;text-transform:uppercase;margin:4px 0}.customer-block{padding:6px 0 8px;border-bottom:1px dashed #ccc;margin-bottom:6px}.customer-name{font-size:16px;font-weight:800}.section-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:700;margin:10px 0 4px}table{width:100%;border-collapse:collapse}.total-block{background:#7c3aed;color:#fff;padding:9px 10px;margin-top:10px;display:flex;justify-content:space-between;align-items:center}.total-lbl{font-size:13px;font-weight:700;letter-spacing:1.5px}.total-amt{font-size:22px;font-weight:900;font-family:'Courier New',monospace}.pay-badge{display:inline-block;border:2px solid #111;border-radius:4px;font-size:11px;font-weight:800;letter-spacing:1.5px;padding:2px 8px;text-transform:uppercase;margin-top:6px}.footer{text-align:center;font-size:11px;color:#888;padding:10px 0 4px;border-top:1px dashed #ccc;margin-top:8px;line-height:1.7}.no-print{text-align:center;margin:14px 0}@media print{.no-print{display:none}}</style></head><body>
+  <div class="hdr"><div class="hdr-name">${settings.cafeName.toUpperCase()}</div>${settings.address?`<div style="font-size:11px;color:#555">${settings.address}</div>`:''}<div class="hdr-meta">${dateStr} &nbsp;·&nbsp; ${timeStr}</div></div>
+  <div style="text-align:center"><span class="food-badge">🍽 Food Bill Only</span></div>
+  <div class="customer-block"><div class="customer-name">${tx.name.toUpperCase()}</div></div>
+  <div class="section-label">Items Ordered</div>
+  <table><tbody>${addonRows}</tbody></table>
+  <div style="text-align:right;margin-top:6px"><span class="pay-badge">${tx.method.toUpperCase()}</span></div>
+  <div class="total-block"><div class="total-lbl">TOTAL</div><div class="total-amt">Rs.${Math.round(tx.totalAmount).toLocaleString('en-IN')}</div></div>
+  <div class="footer">🎲 ${settings.cafeName}<br>Thank you! See you again ✨</div>
+  <div class="no-print" style="margin-top:16px"><button onclick="window.print()" style="padding:10px 28px;background:#7c3aed;color:#fff;border:none;border-radius:7px;font-size:14px;font-family:inherit;cursor:pointer">🖨️ Print</button></div>
+  <script>setTimeout(function(){window.print();},400);<\/script></body></html>`;
+  const w=window.open('','_blank','width=360,height=640');w.document.open();w.document.write(html);w.document.close();
+}
+
+// ═══ PRINT (Session) ═══
 function printR(txId){
   const tx=txns.find(t=>t.id===txId);if(!tx)return;
+  if(tx.txType==='food'){printFoodR(txId);return;}
   const sl=tx.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
   const inT=new Date(tx.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
   const outT=new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
   const dateStr=new Date(tx.t1).toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
   const timeStr=new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
   const addonRows=tx.addons&&tx.addons.length?`<tr><td colspan="2" style="padding:8px 0 3px;font-size:11px;font-weight:700;letter-spacing:1px;color:#555;border-top:1px dashed #ccc">FOOD &amp; BEVERAGES</td></tr>`+tx.addons.map(a=>`<tr><td style="padding:3px 0;font-size:13px">${a.name} <span style="color:#888">×${a.qty}</span></td><td style="text-align:right;font-size:13px;font-family:'Courier New',monospace;font-weight:600">Rs.${Math.round(a.price*a.qty)}</td></tr>`).join(''):'';
+
+  // Per-person breakdown for early outs
+  let perPersonRows='';
+  if(tx.personBreakdown&&tx.personBreakdown.some(p=>p.early)){
+    perPersonRows=`<tr><td colspan="2" style="padding:8px 0 3px;font-size:11px;font-weight:700;letter-spacing:1px;color:#555;border-top:1px dashed #ccc">SEAT CHARGE BREAKDOWN</td></tr>`;
+    tx.personBreakdown.forEach(p=>{
+      const endT=new Date(p.endTime).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
+      perPersonRows+=`<tr><td style="padding:3px 0;font-size:12px">Person ${p.person}${p.early?' (left '+endT+')':''}</td><td style="text-align:right;font-size:12px;font-family:'Courier New',monospace">Rs.${Math.round(p.charge)}</td></tr>`;
+    });
+  }
+
   const html=`<!DOCTYPE html><html><head><title>Receipt</title><meta charset="UTF-8"><style>@page{size:80mm auto;margin:4mm 4mm 18mm 4mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;width:72mm;background:#fff;color:#111}.hdr{text-align:center;padding:6px 0 4px;border-bottom:2px solid #111;margin-bottom:8px}.hdr-name{font-size:20px;font-weight:900;letter-spacing:2px;text-transform:uppercase}.hdr-addr{font-size:11px;color:#555;margin-top:2px}.hdr-meta{font-size:11px;color:#666;margin-top:4px}.customer-block{padding:6px 0 8px;border-bottom:1px dashed #ccc;margin-bottom:6px}.customer-name{font-size:16px;font-weight:800;letter-spacing:.5px}.customer-meta{font-size:11px;color:#666;margin-top:2px}.section-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#888;font-weight:700;margin:10px 0 4px}table{width:100%;border-collapse:collapse}.lbl{color:#666;font-size:12px;padding:3px 0;width:42%}.val{font-size:13px;font-weight:600;text-align:right;padding:3px 0;font-family:'Courier New',monospace}.divider td{border-top:1px dashed #ccc;padding-top:6px}.total-block{background:#111;color:#fff;padding:9px 10px;margin-top:10px;display:flex;justify-content:space-between;align-items:center}.total-lbl{font-size:13px;font-weight:700;letter-spacing:1.5px}.total-amt{font-size:22px;font-weight:900;font-family:'Courier New',monospace}.pay-badge{display:inline-block;border:2px solid #111;border-radius:4px;font-size:11px;font-weight:800;letter-spacing:1.5px;padding:2px 8px;text-transform:uppercase;margin-top:6px}.footer{text-align:center;font-size:11px;color:#888;padding:10px 0 4px;border-top:1px dashed #ccc;margin-top:8px;line-height:1.7}.footer-brand{font-size:13px;font-weight:700;color:#333;letter-spacing:.5px}.no-print{text-align:center;margin:14px 0}@media print{.no-print{display:none}}</style></head><body>
   <div class="hdr"><div class="hdr-name">${settings.cafeName.toUpperCase()}</div>${settings.address?`<div class="hdr-addr">${settings.address}</div>`:''}<div class="hdr-meta">${dateStr} &nbsp;·&nbsp; ${timeStr}</div></div>
   <div class="customer-block"><div class="customer-name">${tx.name.toUpperCase()}</div><div class="customer-meta">Seats: ${sl} &nbsp;·&nbsp; ${tx.persons} person${tx.persons>1?'s':''}</div></div>
   <div class="section-label">Session Details</div>
-  <table><tr><td class="lbl">Check-in</td><td class="val">${inT}</td></tr><tr><td class="lbl">Check-out</td><td class="val">${outT}</td></tr><tr><td class="lbl">Duration</td><td class="val">${fmtMins(tx.t1-tx.t0)}</td></tr><tr><td class="lbl">Rate</td><td class="val">Rs.${settings.ratePerHour}/hr/seat</td></tr><tr class="divider"><td class="lbl">Seat charge</td><td class="val">Rs.${Math.round(tx.seatCharge).toLocaleString('en-IN')}</td></tr>${addonRows}</table>
+  <table><tr><td class="lbl">Check-in</td><td class="val">${inT}</td></tr><tr><td class="lbl">Check-out</td><td class="val">${outT}</td></tr><tr><td class="lbl">Duration</td><td class="val">${fmtMins(tx.t1-tx.t0)}</td></tr><tr><td class="lbl">Rate</td><td class="val">Rs.${settings.ratePerHour}/hr/seat</td></tr>${perPersonRows||`<tr class="divider"><td class="lbl">Seat charge</td><td class="val">Rs.${Math.round(tx.seatCharge).toLocaleString('en-IN')}</td></tr>`}${addonRows}</table>
   <div style="text-align:right;margin-top:6px"><span class="pay-badge">${tx.method.toUpperCase()}</span></div>
   <div class="total-block"><div class="total-lbl">TOTAL</div><div class="total-amt">Rs.${Math.round(tx.totalAmount).toLocaleString('en-IN')}</div></div>
   <div class="footer"><div class="footer-brand">🎲 ${settings.cafeName}</div>Thank you for visiting!<br>See you again soon ✨</div>
@@ -782,23 +1224,73 @@ function deleteMenuItem(id){if(!confirm('Delete this item?'))return;menuItems=me
 // ═══ REPORT ═══
 function renderReport(){
   const dates=allDates(),tx=txnsForDate(reportDate);
-  const rev=tx.reduce((s,t)=>s+t.totalAmount,0),seatRev=tx.reduce((s,t)=>s+t.seatCharge,0),aoRev=tx.reduce((s,t)=>s+(t.addons?t.addons.reduce((a,i)=>a+i.price*i.qty,0):0),0);
+  const sessionTx=tx.filter(t=>t.txType!=='food');
+  const foodTx=tx.filter(t=>t.txType==='food');
+  const rev=tx.reduce((s,t)=>s+t.totalAmount,0);
+  const seatRev=sessionTx.reduce((s,t)=>s+t.seatCharge,0);
+  const aoRev=tx.reduce((s,t)=>s+(t.addons?t.addons.reduce((a,i)=>a+i.price*i.qty,0):0),0);
+  const foodOnlyRev=foodTx.reduce((s,t)=>s+t.totalAmount,0);
+
   let html=`<div class="rpt"><div class="sec-lbl">Select date</div><div class="date-pills">${dates.slice(0,8).map(d=>`<button class="dpill${d===reportDate?' active':''}" onclick="reportDate='${d}';renderReport()">${d===todayStr()?'Today':new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</button>`).join('')}</div>
-    <div class="rpt-stats"><div class="rstat"><div class="rstat-v" style="color:var(--gold)">${inr(rev)}</div><div class="rstat-l">Total Revenue</div></div><div class="rstat"><div class="rstat-v">${tx.length}</div><div class="rstat-l">Sessions</div></div><div class="rstat"><div class="rstat-v">${inr(seatRev)}</div><div class="rstat-l">Seat Revenue</div></div><div class="rstat"><div class="rstat-v">${inr(aoRev)}</div><div class="rstat-l">Food Revenue</div></div></div>
+    <div class="rpt-stats">
+      <div class="rstat"><div class="rstat-v" style="color:var(--gold)">${inr(rev)}</div><div class="rstat-l">Total Revenue</div></div>
+      <div class="rstat"><div class="rstat-v">${tx.length}</div><div class="rstat-l">Total Bills</div></div>
+      <div class="rstat"><div class="rstat-v">${inr(seatRev)}</div><div class="rstat-l">Seat Revenue</div></div>
+      <div class="rstat"><div class="rstat-v">${inr(aoRev)}</div><div class="rstat-l">Food Revenue</div></div>
+      ${foodOnlyRev>0?`<div class="rstat" style="border-color:rgba(124,58,237,.3)"><div class="rstat-v" style="color:var(--purple)">${inr(foodOnlyRev)}</div><div class="rstat-l" style="color:var(--purple)">Food-Only Rev</div></div>`:''}
+    </div>
     <div class="exp-btns"><button class="exp-btn" onclick="exportCSV('${reportDate}')">📊 Export CSV</button><button class="exp-btn" onclick="exportPDF('${reportDate}')">📄 Export PDF</button></div>`;
+
   if(tx.length>0){
     html+=`<div class="sec-lbl">Payment breakdown</div><div class="pay-bkdn">`;
-    ['cash','upi','card'].forEach(m=>{const mt=tx.filter(t=>t.method===m);if(!mt.length)return;html+=`<div class="pbrow"><span style="font-weight:600;font-size:12px;text-transform:uppercase;color:var(--text)">${m}</span><span style="color:var(--text3);font-size:11px">${mt.length} session${mt.length>1?'s':''}</span><span style="font-weight:600;font-size:12px;color:var(--gold);font-variant-numeric:tabular-nums">${inr(mt.reduce((s,t)=>s+t.totalAmount,0))}</span></div>`;});
-    html+=`</div><div class="sec-lbl">Transactions</div>`;
-    tx.forEach(t=>{const sl=t.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;html+=`<div class="tx-item"><div style="flex:1;min-width:0"><div class="tx-seat">Seats ${sl} · ${t.persons}p · ${fmtMins(t.t1-t.t0)}</div><div class="tx-name">${t.name}</div><div class="tx-time">${new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} → ${new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>${ao>0?`<div class="tx-time" style="color:var(--gold)">Food: ${inr(ao)}</div>`:''}${t.phone?`<div class="tx-time">📱 ${t.phone} <button onclick="sendWhatsApp(${t.id})" style="border:1px solid #25D366;background:transparent;color:#25D366;border-radius:4px;font-size:10px;cursor:pointer;padding:1px 6px;margin-left:4px">WA</button></div>`:''}</div><div style="text-align:right;flex-shrink:0;margin-left:10px"><div class="tx-amt">${inr(t.totalAmount)}</div><span class="tag ${t.method}">${t.method.toUpperCase()}</span><button class="tx-print" onclick="printR(${t.id})">🖨️ Reprint</button></div></div>`;});
+    ['cash','upi','card'].forEach(m=>{const mt=tx.filter(t=>t.method===m);if(!mt.length)return;html+=`<div class="pbrow"><span style="font-weight:600;font-size:12px;text-transform:uppercase;color:var(--text)">${m}</span><span style="color:var(--text3);font-size:11px">${mt.length} bill${mt.length>1?'s':''}</span><span style="font-weight:600;font-size:12px;color:var(--gold);font-variant-numeric:tabular-nums">${inr(mt.reduce((s,t)=>s+t.totalAmount,0))}</span></div>`;});
+    html+=`</div>`;
+
+    if(sessionTx.length>0){
+      html+=`<div class="sec-lbl">Session Transactions (${sessionTx.length})</div>`;
+      sessionTx.forEach(t=>{
+        const sl=t.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');
+        const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;
+        const hasEarlyOuts=t.personBreakdown&&t.personBreakdown.some(p=>p.early);
+        html+=`<div class="tx-item"><div style="flex:1;min-width:0">
+          <div class="tx-seat">Seats ${sl} · ${t.persons}p · ${fmtMins(t.t1-t.t0)}${hasEarlyOuts?' · 🚶 early outs':''}</div>
+          <div class="tx-name">${t.name}</div>
+          <div class="tx-time">${new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} → ${new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
+          ${ao>0?`<div class="tx-time" style="color:var(--gold)">Food: ${inr(ao)}</div>`:''}
+          ${t.phone?`<div class="tx-time">📱 ${t.phone} <button onclick="sendWhatsApp(${t.id})" style="border:1px solid #25D366;background:transparent;color:#25D366;border-radius:4px;font-size:10px;cursor:pointer;padding:1px 6px;margin-left:4px">WA</button></div>`:''}
+        </div><div style="text-align:right;flex-shrink:0;margin-left:10px">
+          <div class="tx-amt">${inr(t.totalAmount)}</div>
+          <span class="tag ${t.method}">${t.method.toUpperCase()}</span>
+          <button class="tx-print" onclick="printR(${t.id})">🖨️ Reprint</button>
+        </div></div>`;
+      });
+    }
+
+    if(foodTx.length>0){
+      html+=`<div class="sec-lbl" style="margin-top:12px">Food-Only Orders (${foodTx.length})</div>`;
+      foodTx.forEach(t=>{
+        const itemList=t.addons?t.addons.map(a=>`${a.name}×${a.qty}`).join(', '):'';
+        html+=`<div class="tx-item food-tx"><div style="flex:1;min-width:0">
+          <div class="tx-seat" style="color:var(--purple)">🍽 Food Bill Only</div>
+          <div class="tx-name">${t.name}</div>
+          <div class="tx-time">${new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} → ${new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
+          <div class="tx-time" style="color:var(--text2)">${itemList}</div>
+          ${t.phone?`<div class="tx-time">📱 ${t.phone} <button onclick="sendWhatsApp(${t.id})" style="border:1px solid #25D366;background:transparent;color:#25D366;border-radius:4px;font-size:10px;cursor:pointer;padding:1px 6px;margin-left:4px">WA</button></div>`:''}
+        </div><div style="text-align:right;flex-shrink:0;margin-left:10px">
+          <div class="tx-amt" style="color:var(--purple)">${inr(t.totalAmount)}</div>
+          <span class="tag ${t.method}">${t.method.toUpperCase()}</span>
+          <button class="tx-print" onclick="printFoodR(${t.id})">🖨️ Reprint</button>
+        </div></div>`;
+      });
+    }
   }else{html+=`<div class="empty">No transactions on this date.</div>`;}
   html+='</div>';document.getElementById('content').innerHTML=html;
 }
 
 // ═══ EXPORT ═══
-function exportCSV(date){const tx=txnsForDate(date);const rows=[['Date','Customer','Phone','Persons','Seats','Check-in','Check-out','Duration(min)','Seat Charge','Food','Total','Payment'],...tx.map(t=>{const sl=t.seatIds.join(' ');const dur=Math.floor((t.t1-t.t0)/60000);const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;return[t.date,`"${t.name}"`,t.phone||'',t.persons,`"${sl}"`,new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),dur,Math.round(t.seatCharge),Math.round(ao),Math.round(t.totalAmount),t.method];})];const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${settings.cafeName.replace(/ /g,'-')}-${date.replace(/ /g,'-')}.csv`;a.click();URL.revokeObjectURL(url);}
-function exportAllCSV(){const rows=[['Date','Customer','Phone','Persons','Seats','Check-in','Check-out','Duration(min)','Seat Charge','Food','Total','Payment'],...txns.map(t=>{const sl=t.seatIds.join(' ');const dur=Math.floor((t.t1-t.t0)/60000);const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;return[t.date,`"${t.name}"`,t.phone||'',t.persons,`"${sl}"`,new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),dur,Math.round(t.seatCharge),Math.round(ao),Math.round(t.totalAmount),t.method];})];const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${settings.cafeName.replace(/ /g,'-')}-all.csv`;a.click();URL.revokeObjectURL(url);}
-function exportPDF(date){const tx=txnsForDate(date);const rev=tx.reduce((s,t)=>s+t.totalAmount,0),seatRev=tx.reduce((s,t)=>s+t.seatCharge,0),aoRev=tx.reduce((s,t)=>s+(t.addons?t.addons.reduce((a,i)=>a+i.price*i.qty,0):0),0),guests=tx.reduce((s,t)=>s+t.persons,0);const rows=tx.map(t=>{const sl=t.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;return`<tr><td>${new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}–${new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td><td>${t.name}</td><td>${t.phone||'—'}</td><td style="text-align:center">${t.persons}</td><td>${fmtMins(t.t1-t.t0)}</td><td style="text-align:right">Rs.${Math.round(t.seatCharge).toLocaleString('en-IN')}</td><td style="text-align:right">${ao?'Rs.'+Math.round(ao).toLocaleString('en-IN'):'—'}</td><td style="text-align:right"><strong>Rs.${Math.round(t.totalAmount).toLocaleString('en-IN')}</strong></td><td>${t.method.toUpperCase()}</td></tr>`;}).join('');const w=window.open('','_blank','width=900,height=700');w.document.write(`<html><head><title>Report</title><style>body{font-family:sans-serif;font-size:13px;padding:28px;max-width:1000px;margin:auto}h1{font-size:20px;margin:0 0 3px}h2{font-size:13px;color:#888;font-weight:normal;margin:0 0 18px}.stats{display:flex;gap:12px;margin-bottom:22px}.stat{border:1px solid #ddd;border-radius:8px;padding:11px 16px;text-align:center;flex:1}.sv{font-size:17px;font-weight:700}.sl{font-size:11px;color:#888;margin-top:2px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f5f5f5;padding:7px 8px;text-align:left;border-bottom:2px solid #ddd;font-size:10px;text-transform:uppercase}td{padding:6px 8px;border-bottom:1px solid #eee}tfoot td{background:#f9f9f9;font-weight:700;border-top:2px solid #ddd}.prnbtn{margin-top:20px;padding:10px 22px;background:#BA7517;color:#fff;border:none;border-radius:7px;cursor:pointer}@media print{.prnbtn{display:none}}</style></head><body><h1>${settings.cafeName}</h1><h2>Daily Report — ${new Date(date).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h2><div class="stats"><div class="stat"><div class="sv">Rs.${Math.round(rev).toLocaleString('en-IN')}</div><div class="sl">Total</div></div><div class="stat"><div class="sv">${tx.length}</div><div class="sl">Sessions</div></div><div class="stat"><div class="sv">${guests}</div><div class="sl">Guests</div></div><div class="stat"><div class="sv">Rs.${Math.round(seatRev).toLocaleString('en-IN')}</div><div class="sl">Seat Rev</div></div><div class="stat"><div class="sv">Rs.${Math.round(aoRev).toLocaleString('en-IN')}</div><div class="sl">Food Rev</div></div></div><table><thead><tr><th>Time</th><th>Customer</th><th>Phone</th><th>Persons</th><th>Duration</th><th>Seat</th><th>Food</th><th>Total</th><th>Payment</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="5">TOTAL (${tx.length} sessions)</td><td style="text-align:right">Rs.${Math.round(seatRev).toLocaleString('en-IN')}</td><td style="text-align:right">Rs.${Math.round(aoRev).toLocaleString('en-IN')}</td><td style="text-align:right">Rs.${Math.round(rev).toLocaleString('en-IN')}</td><td></td></tr></tfoot></table><button class="prnbtn" onclick="window.print()">🖨️ Print</button></body></html>`);w.document.close();}
+function exportCSV(date){const tx=txnsForDate(date);const rows=[['Date','Type','Customer','Phone','Persons','Seats','Check-in','Check-out','Duration(min)','Seat Charge','Food','Total','Payment'],...tx.map(t=>{const sl=t.seatIds.join(' ');const dur=Math.floor((t.t1-t.t0)/60000);const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;return[t.date,t.txType==='food'?'Food-Only':'Session',`"${t.name}"`,t.phone||'',t.persons||0,`"${sl}"`,new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),dur,Math.round(t.seatCharge||0),Math.round(ao),Math.round(t.totalAmount),t.method];})];const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${settings.cafeName.replace(/ /g,'-')}-${date.replace(/ /g,'-')}.csv`;a.click();URL.revokeObjectURL(url);}
+function exportAllCSV(){const rows=[['Date','Type','Customer','Phone','Persons','Seats','Check-in','Check-out','Duration(min)','Seat Charge','Food','Total','Payment'],...txns.map(t=>{const sl=t.seatIds.join(' ');const dur=Math.floor((t.t1-t.t0)/60000);const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;return[t.date,t.txType==='food'?'Food-Only':'Session',`"${t.name}"`,t.phone||'',t.persons||0,`"${sl}"`,new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),dur,Math.round(t.seatCharge||0),Math.round(ao),Math.round(t.totalAmount),t.method];})];const csv='\uFEFF'+rows.map(r=>r.join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${settings.cafeName.replace(/ /g,'-')}-all.csv`;a.click();URL.revokeObjectURL(url);}
+function exportPDF(date){const tx=txnsForDate(date);const rev=tx.reduce((s,t)=>s+t.totalAmount,0),seatRev=tx.filter(t=>t.txType!=='food').reduce((s,t)=>s+t.seatCharge,0),aoRev=tx.reduce((s,t)=>s+(t.addons?t.addons.reduce((a,i)=>a+i.price*i.qty,0):0),0),guests=tx.filter(t=>t.txType!=='food').reduce((s,t)=>s+t.persons,0);const rows=tx.map(t=>{const sl=t.seatIds.map(id=>'#'+String(id).padStart(2,'0')).join(', ');const ao=t.addons?t.addons.reduce((s,a)=>s+a.price*a.qty,0):0;return`<tr><td>${t.txType==='food'?'🍽':'🪑'}</td><td>${new Date(t.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}–${new Date(t.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td><td>${t.name}</td><td>${t.phone||'—'}</td><td style="text-align:center">${t.persons||'—'}</td><td>${fmtMins(t.t1-t.t0)}</td><td style="text-align:right">${t.seatCharge?'Rs.'+Math.round(t.seatCharge).toLocaleString('en-IN'):'—'}</td><td style="text-align:right">${ao?'Rs.'+Math.round(ao).toLocaleString('en-IN'):'—'}</td><td style="text-align:right"><strong>Rs.${Math.round(t.totalAmount).toLocaleString('en-IN')}</strong></td><td>${t.method.toUpperCase()}</td></tr>`;}).join('');const w=window.open('','_blank','width=900,height=700');w.document.write(`<html><head><title>Report</title><style>body{font-family:sans-serif;font-size:13px;padding:28px;max-width:1100px;margin:auto}h1{font-size:20px;margin:0 0 3px}h2{font-size:13px;color:#888;font-weight:normal;margin:0 0 18px}.stats{display:flex;gap:12px;margin-bottom:22px}.stat{border:1px solid #ddd;border-radius:8px;padding:11px 16px;text-align:center;flex:1}.sv{font-size:17px;font-weight:700}.sl{font-size:11px;color:#888;margin-top:2px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f5f5f5;padding:7px 8px;text-align:left;border-bottom:2px solid #ddd;font-size:10px;text-transform:uppercase}td{padding:6px 8px;border-bottom:1px solid #eee}tfoot td{background:#f9f9f9;font-weight:700;border-top:2px solid #ddd}.prnbtn{margin-top:20px;padding:10px 22px;background:#BA7517;color:#fff;border:none;border-radius:7px;cursor:pointer}@media print{.prnbtn{display:none}}</style></head><body><h1>${settings.cafeName}</h1><h2>Daily Report — ${new Date(date).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h2><div class="stats"><div class="stat"><div class="sv">Rs.${Math.round(rev).toLocaleString('en-IN')}</div><div class="sl">Total</div></div><div class="stat"><div class="sv">${tx.length}</div><div class="sl">Bills</div></div><div class="stat"><div class="sv">${guests}</div><div class="sl">Guests</div></div><div class="stat"><div class="sv">Rs.${Math.round(seatRev).toLocaleString('en-IN')}</div><div class="sl">Seat Rev</div></div><div class="stat"><div class="sv">Rs.${Math.round(aoRev).toLocaleString('en-IN')}</div><div class="sl">Food Rev</div></div></div><table><thead><tr><th>Type</th><th>Time</th><th>Customer</th><th>Phone</th><th>Persons</th><th>Duration</th><th>Seat</th><th>Food</th><th>Total</th><th>Payment</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="6">TOTAL (${tx.length} bills)</td><td style="text-align:right">Rs.${Math.round(seatRev).toLocaleString('en-IN')}</td><td style="text-align:right">Rs.${Math.round(aoRev).toLocaleString('en-IN')}</td><td style="text-align:right">Rs.${Math.round(rev).toLocaleString('en-IN')}</td><td></td></tr></tfoot></table><button class="prnbtn" onclick="window.print()">🖨️ Print</button></body></html>`);w.document.close();}
 
 // ═══ SETTINGS ═══
 function renderSettings(){
@@ -818,12 +1310,12 @@ function renderSettings(){
       <button class="btn-sec" style="margin-top:0;border-color:var(--blue);color:var(--blue)" onclick="exportAllCSV()">📊 Export All Transactions</button>
       <button class="btn-sec" style="margin-top:8px;border-color:rgba(239,68,68,.5);color:var(--red)" onclick="requirePIN('Clear All Data',confirmClearData)">⚠ Clear All Data</button>
     </div>
-    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v4.0</strong> — Dark UI Edition<br>Firebase · WhatsApp · Persons Edit · Keyboard PIN · Nav Lock<br>Total transactions: <strong>${txns.length}</strong></div>
+    <div class="hint-box" style="margin-top:12px"><strong>The Playhouse Billing v4.1</strong><br>+ Food-Only Billing · + Per-Person Early Checkout<br>Firebase · WhatsApp · Nav Lock · Keyboard PIN<br>Total transactions: <strong>${txns.length}</strong> · Food orders: <strong>${foodOrders.length}</strong></div>
   </div>`;
 }
 function saveSettings(){settings.cafeName=document.getElementById('s-name').value.trim()||'THE PLAYHOUSE';settings.address=document.getElementById('s-addr').value.trim();settings.ratePerHour=parseFloat(document.getElementById('s-rate').value)||99;settings.pin=document.getElementById('s-pin').value;settings.largeBillThreshold=parseFloat(document.getElementById('s-threshold').value)||500;saveAll();renderStats();const btn=event.target;btn.textContent='✓ Saved!';setTimeout(()=>{btn.textContent='Save All Settings';},1800);}
-function confirmClearData(){showModal(`<h3>⚠ Clear All Data?</h3><div class="warn-box">Permanently deletes ALL ${txns.length} transactions.</div><button class="btn-sec" style="border-color:var(--blue);color:var(--blue);margin-top:0" onclick="exportAllCSV()">📊 Export First</button><button class="btn-pri red" onclick="doClearData()">Delete Everything</button><button class="btn-sec" onclick="closeModal()">Cancel</button>`);}
-function doClearData(){seats=mkSeats();txns=[];groupColorMap={};gcIdx=0;coInfo=null;cartItems={};customerCounter=1;saveAll();renderStats();closeModal();if(currentView==='settings')renderSettings();else renderFloor();}
+function confirmClearData(){showModal(`<h3>⚠ Clear All Data?</h3><div class="warn-box">Permanently deletes ALL ${txns.length} transactions and ${foodOrders.length} food orders.</div><button class="btn-sec" style="border-color:var(--blue);color:var(--blue);margin-top:0" onclick="exportAllCSV()">📊 Export First</button><button class="btn-pri red" onclick="doClearData()">Delete Everything</button><button class="btn-sec" onclick="closeModal()">Cancel</button>`);}
+function doClearData(){seats=mkSeats();txns=[];foodOrders=[];groupColorMap={};gcIdx=0;coInfo=null;cartItems={};_foodCart={};_activeFoodOrderId=null;customerCounter=1;saveAll();renderStats();closeModal();if(currentView==='settings')renderSettings();else renderFloor();}
 
 // ═══ NAV ═══
 function setView(v){
@@ -831,7 +1323,15 @@ function setView(v){
   if(v==='settings'){requirePIN('Access Settings',()=>doSetView('settings'));return;}
   doSetView(v);
 }
-function doSetView(v){currentView=v;['floor','menu','report','settings'].forEach(x=>document.getElementById('btn-'+x).classList.toggle('active',x===v));if(v==='floor')renderFloor();else if(v==='menu')renderMenu();else if(v==='report')renderReport();else if(v==='settings')renderSettings();}
+function doSetView(v){
+  currentView=v;
+  ['floor','menu','report','settings','food'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
+  if(v==='floor')renderFloor();
+  else if(v==='food')renderFood();
+  else if(v==='menu')renderMenu();
+  else if(v==='report')renderReport();
+  else if(v==='settings')renderSettings();
+}
 function showModal(html){const ov=document.getElementById('overlay');ov.innerHTML=`<div class="mbox">${html}</div>`;ov.style.display='flex';}
 function closeModal(){
   if(_receiptActive)return;
