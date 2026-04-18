@@ -38,6 +38,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .hnbtn.active{background:var(--gold);color:#fff;border-color:var(--gold);font-weight:700;box-shadow:0 2px 8px var(--gold-glow)}
 .hnbtn.food-tab{border-color:rgba(124,58,237,.35);color:var(--purple)}
 .hnbtn.food-tab.active{background:var(--purple);border-color:var(--purple);box-shadow:0 2px 8px rgba(124,58,237,.25)}
+.hnbtn.appt-tab{border-color:rgba(29,78,216,.35);color:var(--blue)}
+.hnbtn.appt-tab.active{background:var(--blue);border-color:var(--blue);box-shadow:0 2px 8px rgba(29,78,216,.25);color:#fff}
 .hnbtn.nav-locked{opacity:.3;cursor:not-allowed}
 .reset-btn{padding:6px 10px;border-radius:7px;border:1px solid rgba(239,68,68,0.3);background:transparent;cursor:pointer;font-size:11px;color:var(--red);font-family:inherit;white-space:nowrap;font-weight:600;transition:all .15s}
 .reset-btn:hover{background:var(--red-bg);border-color:var(--red)}
@@ -204,6 +206,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
       <button class="hnbtn active" onclick="setView('floor')" id="btn-floor">Floor</button>
       <button class="hnbtn food-tab" onclick="setView('food')" id="btn-food">🍽 Food Bill</button>
       <button class="hnbtn" onclick="setView('menu')" id="btn-menu">Menu</button>
+      <button class="hnbtn appt-tab" onclick="setView('appointments')" id="btn-appointments">📅 Appointments</button>
       <button class="hnbtn" onclick="setView('report')" id="btn-report">Report</button>
       <button class="hnbtn" onclick="setView('settings')" id="btn-settings">⚙</button>
       <button class="reset-btn" onclick="openReset()">🗑</button>
@@ -545,7 +548,7 @@ function doEditBlock(id){
   seats=seats.map(s=>s.id===id?{...s,blockInfo:{name,persons,date,time,note,preOrder}}:s);
   window._rsvCart={};saveAll();closeModal();if(currentView==='floor')renderFloor();
 }
-function unblockSeat(id){seats=seats.map(s=>s.id===id?{...s,blocked:false,blockInfo:null}:s);saveAll();closeModal();if(currentView==='floor')renderFloor();}
+function unblockSeat(id){seats=seats.map(s=>s.id===id?{...s,blocked:false,blockInfo:null}:s);saveAll();closeModal();if(currentView==='floor')renderFloor();else if(currentView==='appointments')renderAppointments();}
 
 // ═══ CHECKOUT ═══
 function openCheckout(gid){
@@ -1335,8 +1338,148 @@ function printR(txId){
   const w=window.open('','_blank','width=370,height=680');w.document.open();w.document.write(html);w.document.close();
 }
 
-// ═══ MENU ═══
-function renderMenu(){
+// ═══ DELETE SINGLE TRANSACTION ═══
+function deleteTxn(txId){
+  const tx=txns.find(t=>t.id===txId);if(!tx)return;
+  showModal(`<h3 style="color:var(--red)">🗑 Delete Transaction?</h3>
+    <div class="bill-box">
+      <div class="brow"><span class="lbl">Customer</span><span class="val">${tx.name}</span></div>
+      <div class="brow"><span class="lbl">Type</span><span class="val">${tx.txType==='food'?'Food Bill':'Session'}</span></div>
+      <div class="brow"><span class="lbl">Date</span><span class="val">${tx.date}</span></div>
+      <div class="brow"><span class="lbl">Amount</span><span class="val" style="color:var(--red);font-weight:700">${inr(tx.totalAmount)}</span></div>
+    </div>
+    <div class="warn-box">Permanently removes this entry from Firebase. Cannot be undone.</div>
+    <button class="btn-pri red" style="margin-top:0" onclick="doDeleteTxn(${txId})">Yes — Delete</button>
+    <button class="btn-sec" onclick="closeModal()">Cancel</button>`);
+}
+function doDeleteTxn(txId){
+  txns=txns.filter(t=>t.id!==txId);
+  // Also remove linked food order if any
+  const linkedFo=foodOrders.find(f=>f.id===txns.find&&'');
+  saveAll();renderStats();closeModal();if(currentView==='report')renderReport();
+  showModal(`<div style="text-align:center;padding:14px 0"><div style="font-size:40px;margin-bottom:8px">✅</div><h3>Deleted</h3><p style="font-size:12px;color:var(--text3);margin-top:8px">Transaction removed successfully.</p></div><button class="btn-pri grn" onclick="closeModal();renderReport()">Done</button>`);
+}
+
+// ═══════════════════════════════════════════════
+// ═══ FUTURE APPOINTMENTS MODULE ═══
+// ═══════════════════════════════════════════════
+function renderAppointments(){
+  const today=todayISO();
+  // Get all reserved seats with future or today dates
+  const reserved=seats.filter(s=>s.blocked&&s.blockInfo);
+  // Sort: today first, then upcoming by date+time
+  const sorted=[...reserved].sort((a,b)=>{
+    const ad=(a.blockInfo.date||'9999')+' '+(a.blockInfo.time||'00:00');
+    const bd=(b.blockInfo.date||'9999')+' '+(b.blockInfo.time||'00:00');
+    return ad.localeCompare(bd);
+  });
+  const todayAppts=sorted.filter(s=>s.blockInfo.date===today);
+  const upcomingAppts=sorted.filter(s=>s.blockInfo.date>today);
+  const pastAppts=sorted.filter(s=>s.blockInfo.date<today||!s.blockInfo.date);
+  const totalToday=todayAppts.length,totalUpcoming=upcomingAppts.length;
+
+  let html=`<div style="padding:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--blue)">📅 Future Appointments</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${reserved.length} total reservations · ${totalToday} today · ${totalUpcoming} upcoming</div>
+      </div>
+      <button style="padding:8px 14px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onclick="openBlockSeatFromAppt()">+ New Reservation</button>
+    </div>`;
+
+  // Summary strip
+  if(reserved.length>0){
+    html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:14px">
+      <div style="background:var(--blue-bg);border:1px solid rgba(29,78,216,.2);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:700;color:var(--blue)">${totalToday}</div>
+        <div style="font-size:9px;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-top:2px">Today</div>
+      </div>
+      <div style="background:var(--green-bg);border:1px solid rgba(22,163,74,.2);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:700;color:var(--green)">${totalUpcoming}</div>
+        <div style="font-size:9px;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-top:2px">Upcoming</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:700;color:var(--text)">${reserved.length}</div>
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px">Total Seats</div>
+      </div>
+    </div>`;
+  }
+
+  function apptCardHTML(s,urgency){
+    const bi=s.blockInfo||{};
+    const dateLabel=bi.date===today?'TODAY':bi.date?new Date(bi.date+'T00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}):'—';
+    const isToday=bi.date===today;
+    const isPast=bi.date&&bi.date<today;
+    const borderCol=isToday?'rgba(29,78,216,.4)':isPast?'rgba(239,68,68,.3)':'var(--border)';
+    const bgCol=isToday?'rgba(29,78,216,.03)':isPast?'rgba(239,68,68,.02)':'var(--bg2)';
+    const preOrderTotal=bi.preOrder?bi.preOrder.reduce((s,a)=>s+a.price*a.qty,0):0;
+    return `<div style="background:${bgCol};border:1.5px solid ${borderCol};border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all .15s" onclick="openBlockedOptions(${s.id})" onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+            <span style="font-size:14px;font-weight:700;color:var(--text)">${bi.name||'—'}</span>
+            ${isToday?`<span style="font-size:9px;font-weight:700;background:var(--blue);color:#fff;padding:2px 7px;border-radius:10px;letter-spacing:.5px">TODAY</span>`:
+              isPast?`<span style="font-size:9px;font-weight:700;background:var(--red-bg);color:var(--red);padding:2px 7px;border-radius:10px;letter-spacing:.5px">OVERDUE</span>`:''}
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap">
+            <span>📅 ${dateLabel}</span>
+            ${bi.time?`<span>🕐 ${bi.time}</span>`:''}
+            <span>👥 ${bi.persons||1} person${(bi.persons||1)>1?'s':''}</span>
+            <span>🪑 Seat #${String(s.id).padStart(2,'0')}</span>
+          </div>
+          ${bi.note?`<div style="font-size:11px;color:var(--text2);margin-top:5px;background:var(--bg3);border-radius:6px;padding:4px 8px;display:inline-block">📝 ${bi.note}</div>`:''}
+          ${preOrderTotal>0?`<div style="font-size:11px;color:var(--purple);margin-top:5px">🍽 Pre-order: ${inr(preOrderTotal)}</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:10px">
+          <button onclick="event.stopPropagation();convertToCheckin(${s.id})" style="padding:6px 12px;border-radius:7px;border:none;background:var(--green);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;display:block;margin-bottom:5px">✓ Check In</button>
+          <button onclick="event.stopPropagation();requirePIN('Remove Reservation',()=>unblockSeat(${s.id}))" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(239,68,68,.3);background:transparent;color:var(--red);font-size:10px;cursor:pointer;font-family:inherit;display:block;width:100%">✕ Remove</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if(todayAppts.length>0){
+    html+=`<div style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--blue);display:inline-block"></span>Today's Appointments (${todayAppts.length})</div>`;
+    todayAppts.forEach(s=>html+=apptCardHTML(s,'today'));
+  }
+
+  if(upcomingAppts.length>0){
+    html+=`<div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin:12px 0 8px;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span>Upcoming (${upcomingAppts.length})</div>`;
+    // Group by date
+    const byDate={};
+    upcomingAppts.forEach(s=>{const d=s.blockInfo.date||'?';if(!byDate[d])byDate[d]=[];byDate[d].push(s);});
+    Object.entries(byDate).sort().forEach(([date,appts])=>{
+      const dl=new Date(date+'T00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+      html+=`<div style="font-size:10px;color:var(--text3);font-weight:600;margin:8px 0 5px;padding-left:2px">${dl}</div>`;
+      appts.forEach(s=>html+=apptCardHTML(s,'upcoming'));
+    });
+  }
+
+  if(pastAppts.length>0){
+    html+=`<details style="margin-top:10px"><summary style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.08em;cursor:pointer;padding:6px 0">⚠ Overdue / No Date (${pastAppts.length})</summary><div style="margin-top:8px">${pastAppts.map(s=>apptCardHTML(s,'past')).join('')}</div></details>`;
+  }
+
+  if(reserved.length===0){
+    html+=`<div class="empty" style="padding:60px 20px">
+      <div style="font-size:40px;margin-bottom:12px">📅</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px">No appointments yet</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Reserve seats from the Floor view or tap below</div>
+      <button style="padding:9px 20px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" onclick="openBlockSeatFromAppt()">+ Add Reservation</button>
+    </div>`;
+  }
+
+  html+='</div>';
+  document.getElementById('content').innerHTML=html;
+}
+
+function openBlockSeatFromAppt(){
+  // Find first free seat
+  const freeSeat=seats.find(s=>!s.occupied&&!s.blocked);
+  if(!freeSeat){showModal(`<h3>No Free Seats</h3><div class="warn-box">All seats are currently occupied or reserved.</div><button class="btn-sec" onclick="closeModal()">OK</button>`);return;}
+  openBlockSeat(freeSeat.id);
+}
+
+
   const cats=[...new Set(menuItems.map(m=>m.category))];
   let html=`<div style="padding:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:14px;font-weight:600;color:var(--text)">Menu <span style="color:var(--text3);font-weight:400">(${menuItems.length} items)</span></div><button class="btn-pri" style="width:auto;padding:7px 14px;margin-top:0;font-size:12px" onclick="openAddMenuItem()">+ Add Item</button></div>`;
   if(!menuItems.length)html+=`<div class="empty">No menu items yet.</div>`;
@@ -1389,6 +1532,7 @@ function renderReport(){
           <div class="tx-amt">${inr(t.totalAmount)}</div>
           <span class="tag ${t.method}">${t.method.toUpperCase()}</span>
           <button class="tx-print" onclick="printR(${t.id})">🖨️ Reprint</button>
+          <button class="tx-print" style="border-color:rgba(220,38,38,.3);color:var(--red);margin-top:3px" onclick="requirePIN('Delete Transaction',()=>deleteTxn(${t.id}))">🗑 Delete</button>
         </div></div>`;
       });
     }
@@ -1406,6 +1550,7 @@ function renderReport(){
           <div class="tx-amt" style="color:var(--purple)">${inr(t.totalAmount)}</div>
           <span class="tag ${t.method}">${t.method.toUpperCase()}</span>
           <button class="tx-print" onclick="printFoodR(${t.id})">🖨️ Reprint</button>
+          <button class="tx-print" style="border-color:rgba(220,38,38,.3);color:var(--red);margin-top:3px" onclick="requirePIN('Delete Transaction',()=>deleteTxn(${t.id}))">🗑 Delete</button>
         </div></div>`;
       });
     }
@@ -1451,11 +1596,12 @@ function setView(v){
 }
 function doSetView(v){
   currentView=v;
-  ['floor','menu','report','settings','food'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
+  ['floor','menu','report','settings','food','appointments'].forEach(x=>{const el=document.getElementById('btn-'+x);if(el)el.classList.toggle('active',x===v);});
   if(v==='floor')renderFloor();
   else if(v==='food')renderFood();
   else if(v==='menu')renderMenu();
   else if(v==='report')renderReport();
+  else if(v==='appointments')renderAppointments();
   else if(v==='settings')renderSettings();
 }
 function showModal(html){const ov=document.getElementById('overlay');ov.innerHTML=`<div class="mbox">${html}</div>`;ov.style.display='flex';}
