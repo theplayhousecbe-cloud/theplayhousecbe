@@ -1469,368 +1469,289 @@ function closeModal(){
 setInterval(()=>{tickUpdate();if(currentView==='report')renderReport();},1000);
 setTimeout(()=>{checkExportBanner();},1500);
 
-async function startApp(){await loadAll();renderStats();renderFloor();checkExportBanner();}
-  <!--
-  PLAYHOUSE PRICING OVERRIDE v4.4 — with Kids Pricing
-  ════════════════════════════════════════════════════
-  PRICING RULES
-    Adults:  ₹149 flat for 1st hour · then ₹99/hr pro-rata (per minute)
-    Kids (under 10): ₹99 flat for 1st hour · then ₹99/hr pro-rata
-    (Kids are effectively ₹99/hr all the way, no "first hour premium")
+async function startApp(){await loadAll();renderStats();renderFloor();checkExportBanner();} 
+startApp();
+  // ═══ KIDS PRICING OVERRIDE v4.4 ═══
+// Adults: ₹149 flat 1st hr, then ₹99/hr pro-rata
+// Kids (under 10): ₹99 flat 1st hr, then ₹99/hr pro-rata
+(function(){
+  // ─── Wait until original startApp() finishes loading from Firebase ───
+  // We wrap our setup in a small delay so settings/seats are loaded first.
+  function applyOverride(){
 
-  HOW TO APPLY
-    Open your index.html in an editor.
-    Scroll to the very bottom — find the last  </script>  tag (just
-    before </body>).
-    Paste THIS ENTIRE BLOCK immediately before that </script> tag.
-    Save. Deploy. Done.
+    // ─── 1. Pricing config (added to settings) ───
+    if(!settings.firstHourRate)    settings.firstHourRate    = 149;
+    if(!settings.ratePerHour)      settings.ratePerHour      =  99;
+    if(!settings.kidFirstHourRate) settings.kidFirstHourRate =  99;
+    if(!settings.kidRatePerHour)   settings.kidRatePerHour   =  99;
 
-  TO ROLL BACK
-    Delete this pasted block. Original code is untouched.
--->
+    // ─── 2. Per-person charge helpers ───
+    window._adultCharge = function(mins){
+      var r1 = settings.firstHourRate || 149;
+      var r2 = settings.ratePerHour   ||  99;
+      if(mins <= 60) return r1;
+      return Math.ceil(r1 + (r2/60) * (mins - 60));
+    };
+    window._kidCharge = function(mins){
+      var r1 = settings.kidFirstHourRate || 99;
+      var r2 = settings.kidRatePerHour   || 99;
+      if(mins <= 60) return r1;
+      return Math.ceil(r1 + (r2/60) * (mins - 60));
+    };
 
-<!-- ═══════════════════════════════════════════════════ -->
-<!-- PASTE FROM HERE ↓↓↓ -->
-<!-- ═══════════════════════════════════════════════════ -->
-
-// ─── PRICING CONFIG ────────────────────────────────────
-if (!settings.firstHourRate)      settings.firstHourRate      = 149;  // adult 1st hr
-if (!settings.ratePerHour)        settings.ratePerHour        =  99;  // adult 2nd hr+
-if (!settings.kidFirstHourRate)   settings.kidFirstHourRate   =  99;  // kid 1st hr
-if (!settings.kidRatePerHour)     settings.kidRatePerHour     =  99;  // kid 2nd hr+
-
-// ─── PER-PERSON CHARGE HELPERS ─────────────────────────
-function _adultCharge(mins) {
-  const r1 = settings.firstHourRate || 149;
-  const r2 = settings.ratePerHour   ||  99;
-  if (mins <= 60) return r1;
-  return Math.ceil(r1 + (r2 / 60) * (mins - 60));
-}
-function _kidCharge(mins) {
-  const r1 = settings.kidFirstHourRate || 99;
-  const r2 = settings.kidRatePerHour   || 99;
-  if (mins <= 60) return r1;
-  return Math.ceil(r1 + (r2 / 60) * (mins - 60));
-}
-
-// ─── MAIN CHECKOUT CHARGE (kids-aware) ─────────────────
-// Treats the first `kids` persons in the group as kids, rest as adults.
-// earlyOuts keys by person index (0 = first person), same as before.
-calcCheckoutCharge = function(t0, persons, earlyOuts, kids) {
-  // Fallback: pull kids count from the coInfo cache if not passed
-  if (kids == null && typeof coInfo !== 'undefined' && coInfo) kids = coInfo.kids || 0;
-  if (kids == null) kids = 0;
-  kids = Math.min(kids, persons);
-  const now = Date.now();
-  let total = 0;
-  for (let i = 0; i < persons; i++) {
-    const endTime = (earlyOuts && earlyOuts[i]) ? earlyOuts[i] : now;
-    const mins = (endTime - t0) / 60000;
-    total += (i < kids) ? _kidCharge(mins) : _adultCharge(mins);
-  }
-  return total;
-};
-
-// ─── LIVE FLOOR-DISPLAY CHARGE ─────────────────────────
-// Called from the floor view; we enrich it to look up kids from the seat's
-// groupId so the live "what's this group racking up" number is accurate.
-calcSeatCharge = function(t0, persons) {
-  const mins = (Date.now() - t0) / 60000;
-  // Not enough info here to split kids/adults — return worst-case (all adults).
-  // The *actual* bill on checkout uses the real split.
-  return _adultCharge(mins) * persons;
-};
-calcSeatChargeAtTime = function(t0, t1, persons) {
-  const mins = (t1 - t0) / 60000;
-  return _adultCharge(mins) * persons;
-};
-
-// ─── CHECK-IN MODAL: add Kids counter ──────────────────
-(function patchCheckin() {
-  const orig = openCheckin;
-  openCheckin = function(startId, prefillName = '') {
-    orig(startId, prefillName);
-    // Inject a Kids counter *after* the Persons counter
-    setTimeout(() => {
-      const personsField = document.getElementById('ci-p');
-      if (!personsField || document.getElementById('ci-k')) return;
-      const personsGroup = personsField.closest('.fgrp');
-      if (!personsGroup) return;
-
-      // Relabel "Persons" → "Adults"
-      const lbl = personsGroup.querySelector('.flabel');
-      if (lbl) lbl.innerHTML = 'Adults';
-
-      // Add Kids counter right after
-      const kidsHTML = `
-        <div class="fgrp">
-          <label class="flabel">Kids (under 10) <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none">· ₹${settings.kidFirstHourRate || 99}/hr</span></label>
-          <div class="counter">
-            <button class="cbtn" onclick="chgK(-1)">−</button>
-            <span class="cval" id="ci-k">0</span>
-            <button class="cbtn" onclick="chgK(1)">+</button>
-            <span style="font-size:11px;color:var(--text3)">child rate</span>
-          </div>
-        </div>`;
-      personsGroup.insertAdjacentHTML('afterend', kidsHTML);
-
-      // Replace the hint-box with a dual-rate summary
-      const hintBox = document.querySelector('.overlay .hint-box');
-      if (hintBox) {
-        const a1 = settings.firstHourRate || 149;
-        const a2 = settings.ratePerHour   ||  99;
-        const k1 = settings.kidFirstHourRate || 99;
-        hintBox.innerHTML =
-          `<strong>Adult:</strong> ${inr(a1)} flat 1st hr · then ${inr(a2)}/hr pro-rata<br>` +
-          `<strong>Kid:</strong> ${inr(k1)}/hr pro-rata (under 10)`;
+    // ─── 3. Override calcCheckoutCharge — main billing function ───
+    // First `kids` persons in the group are kids, rest are adults.
+    window.calcCheckoutCharge = function(t0, persons, earlyOuts, kidsOverride){
+      var kids = kidsOverride;
+      if(kids == null && coInfo && coInfo.kids != null) kids = coInfo.kids;
+      if(kids == null) kids = 0;
+      kids = Math.min(kids, persons);
+      var now = Date.now();
+      var total = 0;
+      for(var i = 0; i < persons; i++){
+        var endTime = (earlyOuts && earlyOuts[i]) ? earlyOuts[i] : now;
+        var mins = (endTime - t0) / 60000;
+        total += (i < kids) ? _kidCharge(mins) : _adultCharge(mins);
       }
-    }, 20);
-  };
+      return total;
+    };
 
-  // Kid counter
-  window.chgK = function(d) {
-    const el = document.getElementById('ci-k');
-    if (!el) return;
-    const n = Math.max(0, parseInt(el.textContent) + d);
-    el.textContent = n;
-  };
+    // ─── 4. Override live floor charge functions ───
+    // (Used in some display paths. Worst-cases at adult rate when kids unknown.)
+    window.calcSeatCharge = function(t0, persons){
+      var mins = (Date.now() - t0) / 60000;
+      return _adultCharge(mins) * persons;
+    };
+    window.calcSeatChargeAtTime = function(t0, t1, persons){
+      var mins = (t1 - t0) / 60000;
+      return _adultCharge(mins) * persons;
+    };
 
-  // Wrap doCheckin to record kids count on the seats
-  const origDo = doCheckin;
-  doCheckin = function(startId) {
-    const adults = parseInt(document.getElementById('ci-p').textContent) || 0;
-    const kids = parseInt(document.getElementById('ci-k')?.textContent || '0') || 0;
-    const totalPersons = adults + kids;
-    if (totalPersons < 1) { alert('Add at least 1 adult or kid.'); return; }
+    // ─── 5. Patch openCheckin — add Kids counter ───
+    var _origOpenCheckin = openCheckin;
+    window.openCheckin = function(startId, prefillName){
+      _origOpenCheckin(startId, prefillName || '');
+      setTimeout(function(){
+        var personsField = document.getElementById('ci-p');
+        if(!personsField || document.getElementById('ci-k')) return;
+        var personsGroup = personsField.closest('.fgrp');
+        if(!personsGroup) return;
 
-    // Temporarily force persons field to be the total so the original logic works
-    document.getElementById('ci-p').textContent = totalPersons;
-    // Call original — it'll allocate seats and create the group
-    origDo(startId);
+        // Relabel "Persons" → "Adults"
+        var lbl = personsGroup.querySelector('.flabel');
+        if(lbl) lbl.innerHTML = 'Adults';
 
-    // After original runs, tag the just-created group with kids count
-    // Find the newest group (highest groupId, as they're 'g' + Date.now())
-    const groups = seats.filter(s => s.occupied && s.groupId)
-                        .sort((a, b) => (b.groupId || '').localeCompare(a.groupId || ''));
-    if (groups.length > 0) {
-      const newestGid = groups[0].groupId;
-      seats = seats.map(s => s.groupId === newestGid ? { ...s, kids: kids, adults: adults } : s);
+        // Insert Kids counter after Adults counter
+        var kidsHTML =
+          '<div class="fgrp">' +
+            '<label class="flabel">Kids (under 10) ' +
+              '<span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none">· ' +
+              inr(settings.kidFirstHourRate||99) + '/hr</span>' +
+            '</label>' +
+            '<div class="counter">' +
+              '<button class="cbtn" onclick="chgK(-1)">−</button>' +
+              '<span class="cval" id="ci-k">0</span>' +
+              '<button class="cbtn" onclick="chgK(1)">+</button>' +
+              '<span style="font-size:11px;color:var(--text3)">child rate</span>' +
+            '</div>' +
+          '</div>';
+        personsGroup.insertAdjacentHTML('afterend', kidsHTML);
+
+        // Replace hint-box with dual-rate summary
+        var hintBox = document.querySelector('.overlay .hint-box');
+        if(hintBox){
+          var a1 = settings.firstHourRate    || 149;
+          var a2 = settings.ratePerHour      ||  99;
+          var k1 = settings.kidFirstHourRate ||  99;
+          var k2 = settings.kidRatePerHour   ||  99;
+          hintBox.innerHTML =
+            '<strong>Adult:</strong> ' + inr(a1) + ' flat 1st hr · then ' + inr(a2) + '/hr pro-rata<br>' +
+            '<strong>Kid:</strong> '   + inr(k1) + ' flat 1st hr · then ' + inr(k2) + '/hr pro-rata';
+        }
+      }, 30);
+    };
+
+    // Kid counter handler
+    window.chgK = function(d){
+      var el = document.getElementById('ci-k');
+      if(!el) return;
+      el.textContent = Math.max(0, parseInt(el.textContent) + d);
+    };
+
+    // ─── 6. Patch doCheckin — store adults/kids on seats ───
+    var _origDoCheckin = doCheckin;
+    window.doCheckin = function(startId){
+      var adults = parseInt(document.getElementById('ci-p').textContent) || 0;
+      var kids   = parseInt((document.getElementById('ci-k')||{textContent:'0'}).textContent) || 0;
+      var totalPersons = adults + kids;
+      if(totalPersons < 1){ alert('Add at least 1 adult or kid.'); return; }
+
+      // Force the persons field to total so original logic allocates the right number of seats
+      document.getElementById('ci-p').textContent = totalPersons;
+      _origDoCheckin(startId);
+
+      // After original runs, find the newest group and tag it with kids/adults
+      var newest = seats.filter(function(s){return s.occupied && s.groupId;})
+                       .sort(function(a,b){return (b.groupId||'').localeCompare(a.groupId||'');})[0];
+      if(newest){
+        var gid = newest.groupId;
+        seats = seats.map(function(s){
+          return s.groupId === gid ? Object.assign({}, s, {adults: adults, kids: kids}) : s;
+        });
+        saveAll();
+        if(currentView === 'floor') renderFloor();
+      }
+    };
+
+    // ─── 7. Patch openCheckout — load kids into coInfo, show Mix row ───
+    var _origOpenCheckout = openCheckout;
+    window.openCheckout = function(gid){
+      _origOpenCheckout(gid);
+      var grp = seats.filter(function(s){return s.groupId === gid;});
+      if(!grp.length) return;
+      var kids   = grp[0].kids   || 0;
+      var adults = grp[0].adults || (grp[0].groupSize - kids);
+      if(coInfo && coInfo.gid === gid){
+        coInfo.kids   = kids;
+        coInfo.adults = adults;
+      }
+      setTimeout(function(){
+        if(typeof refreshCoTotals === 'function') refreshCoTotals();
+        if(kids > 0){
+          var billBox = document.querySelector('.overlay .bill-box');
+          if(billBox && !billBox.querySelector('[data-kids-row]')){
+            var seatRow = billBox.querySelector('.brow:nth-child(2)');
+            var row = document.createElement('div');
+            row.className = 'brow';
+            row.setAttribute('data-kids-row','1');
+            row.innerHTML =
+              '<span class="lbl">Mix</span>' +
+              '<span class="val" style="font-size:11px;color:var(--blue)">' +
+                adults + ' adult' + (adults!==1?'s':'') + ' · ' +
+                kids   + ' kid'   + (kids!==1?'s':'') +
+              '</span>';
+            if(seatRow) seatRow.insertAdjacentElement('afterend', row);
+          }
+        }
+      }, 30);
+    };
+
+    // ─── 8. Patch finalizeCheckout — rebuild personBreakdown with kid/adult flags ───
+    var _origFinalize = finalizeCheckout;
+    window.finalizeCheckout = function(gid, phone){
+      _origFinalize(gid, phone || '');
+      var tx = txns[0];
+      if(!tx) return;
+      var kids = (coInfo && coInfo.kids) || tx.kids || 0;
+      // coInfo gets cleared by the original — fall back to seat info
+      if(!kids){
+        // No way to recover; assume 0 kids (won't happen in normal flow)
+        return;
+      }
+      var persons = tx.persons;
+      var earlyOuts = tx.earlyOuts || {};
+      var pb = [];
+      for(var i = 0; i < persons; i++){
+        var endTime = earlyOuts[i] || tx.t1;
+        var mins = (endTime - tx.t0) / 60000;
+        var isKid = i < kids;
+        pb.push({
+          person: i + 1,
+          endTime: endTime,
+          charge: isKid ? _kidCharge(mins) : _adultCharge(mins),
+          early: !!earlyOuts[i],
+          type: isKid ? 'kid' : 'adult'
+        });
+      }
+      var newSeatCharge = pb.reduce(function(s,p){return s + p.charge;}, 0);
+      var addonsTotal = (tx.addons||[]).reduce(function(s,a){return s + a.price * a.qty;}, 0);
+      tx.personBreakdown = pb;
+      tx.seatCharge = newSeatCharge;
+      tx.totalAmount = newSeatCharge + addonsTotal;
+      tx.kids = kids;
+      tx.adults = persons - kids;
       saveAll();
-      if (currentView === 'floor') renderFloor();
-    }
-  };
-})();
+    };
 
-// ─── CHECKOUT MODAL: respect kids & show breakdown ─────
-(function patchCheckout() {
-  const orig = openCheckout;
-  openCheckout = function(gid) {
-    orig(gid);
-    // After the modal renders, tag coInfo with kids so all calcs are kid-aware
-    const grp = seats.filter(s => s.groupId === gid);
-    if (!grp.length) return;
-    const kids = grp[0].kids || 0;
-    const adults = grp[0].adults || (grp[0].groupSize - kids) || 0;
-    if (typeof coInfo !== 'undefined' && coInfo && coInfo.gid === gid) {
-      coInfo.kids = kids;
-      coInfo.adults = adults;
-    }
-    // Recompute totals now that kids info is in place
-    setTimeout(() => { if (typeof refreshCoTotals === 'function') refreshCoTotals(); }, 20);
-
-    // Inject a kids badge into the bill box if kids > 0
-    if (kids > 0) {
-      const billBox = document.querySelector('.overlay .bill-box');
-      if (billBox && !billBox.querySelector('[data-kids-row]')) {
-        const seatRow = billBox.querySelector('.brow:nth-child(2)'); // the Seats row
-        const row = document.createElement('div');
-        row.className = 'brow';
-        row.setAttribute('data-kids-row', '1');
-        row.innerHTML = `<span class="lbl">Mix</span><span class="val" style="font-size:11px">${adults} adult${adults!==1?'s':''} · ${kids} kid${kids!==1?'s':''}</span>`;
-        if (seatRow) seatRow.insertAdjacentElement('afterend', row);
-      }
-    }
-  };
-})();
-
-// ─── FINALIZE CHECKOUT: store per-person breakdown with type ──
-(function patchFinalize() {
-  const orig = finalizeCheckout;
-  finalizeCheckout = function(gid, phone = '') {
-    // We need to override the personBreakdown creation, which happens
-    // inside the original. The simplest way: let the original run, then
-    // re-compute and patch the latest transaction.
-    orig(gid, phone);
-
-    // The newest txn is txns[0]
-    const tx = txns[0];
-    if (!tx) return;
-    const kids = (coInfo && coInfo.kids) || tx.kids || 0;
-    const persons = tx.persons;
-    const adults = persons - kids;
-    const earlyOuts = tx.earlyOuts || {};
-    const now = tx.t1;
-
-    // Rebuild personBreakdown with kid/adult flags and correct per-person rate
-    const pb = [];
-    for (let i = 0; i < persons; i++) {
-      const endTime = earlyOuts[i] || now;
-      const mins = (endTime - tx.t0) / 60000;
-      const isKid = i < kids;
-      const charge = isKid ? _kidCharge(mins) : _adultCharge(mins);
-      pb.push({
-        person: i + 1,
-        endTime,
-        charge,
-        early: !!earlyOuts[i],
-        type: isKid ? 'kid' : 'adult'
-      });
-    }
-    const newSeatCharge = pb.reduce((s, p) => s + p.charge, 0);
-    const addonsTotal = (tx.addons || []).reduce((s, a) => s + a.price * a.qty, 0);
-    tx.personBreakdown = pb;
-    tx.seatCharge = newSeatCharge;
-    tx.totalAmount = newSeatCharge + addonsTotal;
-    tx.kids = kids;
-    tx.adults = adults;
-    saveAll();
-  };
-})();
-
-// ─── EDIT SESSION: preserve kids on resize ────────────
-// (Optional — keeps kids count correct if Edit Session changes the group size.
-//  If you resize down, we assume adults leave first; kids stay. Change the
-//  behaviour if that's wrong for your flow.)
-(function patchEditSession() {
-  if (typeof doEditSession !== 'function') return;
-  const orig = doEditSession;
-  doEditSession = function(gid) {
-    const grp = seats.filter(s => s.groupId === gid);
-    const existingKids = (grp[0] || {}).kids || 0;
-    orig(gid);
-    // After resize, re-apply kids count (capped to new groupSize)
-    const newGrp = seats.filter(s => s.groupId === gid);
-    if (!newGrp.length) return;
-    const newSize = newGrp[0].groupSize;
-    const kids = Math.min(existingKids, newSize);
-    const adults = newSize - kids;
-    seats = seats.map(s => s.groupId === gid ? { ...s, kids, adults } : s);
-    saveAll();
-  };
-})();
-
-// ─── SETTINGS PAGE: add all four rate fields ───────────
-(function patchSettings() {
-  const origRender = renderSettings;
-  renderSettings = function() {
-    origRender();
-    const rateInput = document.getElementById('s-rate');
-    if (!rateInput || document.getElementById('s-first-rate')) return;
-    const rateGroup = rateInput.closest('.fgrp');
-    if (!rateGroup) return;
-
-    // Relabel existing rate field
-    const rateLbl = rateGroup.querySelector('.flabel');
-    if (rateLbl) rateLbl.textContent = 'Adult — 2nd hour onwards (₹/hr, pro-rata)';
-
-    // Inject 1st-hour adult + both kid rates before the 2nd-hour adult field
-    const extraHTML = `
-      <div class="fgrp">
-        <label class="flabel">Adult — 1st hour flat rate per person (₹)</label>
-        <input id="s-first-rate" type="number" value="${settings.firstHourRate || 149}" min="1">
-      </div>
-      <div class="fgrp">
-        <label class="flabel">Kid (under 10) — 1st hour rate per person (₹)</label>
-        <input id="s-kid-first-rate" type="number" value="${settings.kidFirstHourRate || 99}" min="0">
-      </div>
-      <div class="fgrp">
-        <label class="flabel">Kid (under 10) — 2nd hour onwards (₹/hr, pro-rata)</label>
-        <input id="s-kid-rate" type="number" value="${settings.kidRatePerHour || 99}" min="0">
-      </div>`;
-    rateGroup.insertAdjacentHTML('beforebegin', extraHTML);
-  };
-
-  const origSave = saveSettings;
-  saveSettings = function() {
-    const fr = document.getElementById('s-first-rate');
-    const kfr = document.getElementById('s-kid-first-rate');
-    const kr = document.getElementById('s-kid-rate');
-    if (fr)  settings.firstHourRate    = parseFloat(fr.value)  || 149;
-    if (kfr) settings.kidFirstHourRate = parseFloat(kfr.value) ||  99;
-    if (kr)  settings.kidRatePerHour   = parseFloat(kr.value)  ||  99;
-    origSave.apply(this, arguments);
-  };
-})();
-
-// ─── FLOOR DISPLAY: show kid dot on seats ──────────────
-(function patchFloor() {
-  const orig = renderFloor;
-  renderFloor = function() {
-    orig();
-    // After the floor renders, add a small "K" badge to seats that have kids
-    seats.forEach(s => {
-      if (!s.occupied || !s.kids || s.kids <= 0) return;
-      // Find every rendered seat tile for this group and tag the first one
-      const seatEls = document.querySelectorAll('.seat.occ');
-      seatEls.forEach(el => {
-        const num = el.querySelector('.sn')?.textContent;
-        const expected = '#' + String(s.id).padStart(2, '0');
-        if (num === expected && !el.querySelector('[data-kid-tag]')) {
-          const badge = document.createElement('span');
-          badge.setAttribute('data-kid-tag', '1');
-          badge.style.cssText = 'position:absolute;bottom:3px;right:5px;background:#3b82f6;color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;letter-spacing:.3px';
-          badge.textContent = s.kids + 'K';
-          el.appendChild(badge);
+    // ─── 9. Patch renderFloor — add kid badge to seat tiles ───
+    var _origRenderFloor = renderFloor;
+    window.renderFloor = function(){
+      _origRenderFloor();
+      var groupShown = {};
+      seats.forEach(function(s){
+        if(!s.occupied || !s.kids || s.kids <= 0) return;
+        if(groupShown[s.groupId]) return;
+        var seatEls = document.querySelectorAll('.seat.occ');
+        for(var i = 0; i < seatEls.length; i++){
+          var snEl = seatEls[i].querySelector('.sn');
+          var expected = '#' + String(s.id).padStart(2,'0');
+          if(snEl && snEl.textContent === expected){
+            if(!seatEls[i].querySelector('[data-kid-tag]')){
+              var badge = document.createElement('span');
+              badge.setAttribute('data-kid-tag','1');
+              badge.style.cssText = 'position:absolute;bottom:3px;right:5px;background:#3b82f6;color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;letter-spacing:.3px';
+              badge.textContent = s.kids + 'K';
+              seatEls[i].appendChild(badge);
+            }
+            groupShown[s.groupId] = true;
+            break;
+          }
         }
       });
-    });
-  };
+    };
+
+    // ─── 10. Patch renderSettings — add 3 new rate fields ───
+    var _origRenderSettings = renderSettings;
+    window.renderSettings = function(){
+      _origRenderSettings();
+      var rateInput = document.getElementById('s-rate');
+      if(!rateInput || document.getElementById('s-first-rate')) return;
+      var rateGroup = rateInput.closest('.fgrp');
+      if(!rateGroup) return;
+      var rateLbl = rateGroup.querySelector('.flabel');
+      if(rateLbl) rateLbl.textContent = 'Adult — 2nd hour onwards (₹/hr, pro-rata)';
+      var extraHTML =
+        '<div class="fgrp">' +
+          '<label class="flabel">Adult — 1st hour flat rate per person (₹)</label>' +
+          '<input id="s-first-rate" type="number" value="' + (settings.firstHourRate||149) + '" min="1">' +
+        '</div>' +
+        '<div class="fgrp">' +
+          '<label class="flabel">Kid (under 10) — 1st hour rate per person (₹)</label>' +
+          '<input id="s-kid-first-rate" type="number" value="' + (settings.kidFirstHourRate||99) + '" min="0">' +
+        '</div>' +
+        '<div class="fgrp">' +
+          '<label class="flabel">Kid (under 10) — 2nd hour onwards (₹/hr, pro-rata)</label>' +
+          '<input id="s-kid-rate" type="number" value="' + (settings.kidRatePerHour||99) + '" min="0">' +
+        '</div>';
+      rateGroup.insertAdjacentHTML('beforebegin', extraHTML);
+    };
+
+    // ─── 11. Patch saveSettings — persist the 3 new fields ───
+    var _origSaveSettings = saveSettings;
+    window.saveSettings = function(){
+      var fr  = document.getElementById('s-first-rate');
+      var kfr = document.getElementById('s-kid-first-rate');
+      var kr  = document.getElementById('s-kid-rate');
+      if(fr)  settings.firstHourRate    = parseFloat(fr.value)  || 149;
+      if(kfr) settings.kidFirstHourRate = parseFloat(kfr.value) ||  99;
+      if(kr)  settings.kidRatePerHour   = parseFloat(kr.value)  ||  99;
+      _origSaveSettings.apply(this, arguments);
+    };
+
+    // ─── 12. Trigger first re-render so changes show immediately ───
+    if(typeof renderStats === 'function') renderStats();
+    if(currentView === 'floor' && typeof renderFloor === 'function') renderFloor();
+
+    console.log(
+      '✅ Playhouse v4.4 (kids pricing) loaded.\n' +
+      '   Adult: ₹' + (settings.firstHourRate||149) + ' flat 1hr / ₹' + (settings.ratePerHour||99) + '/hr after\n' +
+      '   Kid:   ₹' + (settings.kidFirstHourRate||99) + ' flat 1hr / ₹' + (settings.kidRatePerHour||99) + '/hr after'
+    );
+  }
+
+  // Apply after a short delay so the original startApp's loadAll() has finished
+  setTimeout(applyOverride, 1200);
 })();
-
-// ─── TRIGGER FIRST RE-RENDER ───────────────────────────
-if (typeof renderStats === 'function') renderStats();
-if (currentView === 'floor' && typeof renderFloor === 'function') renderFloor();
-
-console.log(
-  '✅ Playhouse v4.4 loaded. ' +
-  'Adult: ₹' + (settings.firstHourRate || 149) + ' flat 1hr / ₹' + (settings.ratePerHour || 99) + '/hr after. ' +
-  'Kid: ₹' + (settings.kidFirstHourRate || 99) + ' flat 1hr / ₹' + (settings.kidRatePerHour || 99) + '/hr after.'
-);
-
-<!-- ═══════════════════════════════════════════════════ -->
-<!-- PASTE TO HERE ↑↑↑ -->
-<!-- ═══════════════════════════════════════════════════ -->
-
-<!--
-  QUICK TEST SCRIPT — run through these after pasting
-
-   1. Check in: 2 adults + 1 kid (under 10)
-      → Floor shows the seats occupied + a small "1K" badge
-      → Checkout modal shows "Mix: 2 adults · 1 kid" row
-      → Tap checkout immediately → bill = ₹149 + ₹149 + ₹99 = ₹397
-
-   2. Wait 1h 30 min (or edit check-in time back via Edit Session)
-      → Adult charge: 149 + ceil((99/60)*30) = 149 + 50 = ₹199 each
-      → Kid charge:   99 + ceil((99/60)*30)  = 99 + 50 = ₹149
-      → Group total: 2×199 + 149 = ₹547
-
-   3. Settings page now shows 4 rate fields — edit each and checkout
-      should reflect the new rate on the *next* session.
-
-  IF THINGS LOOK WRONG
-  - Adult count includes kids by accident? → re-check doCheckin patch
-  - Kid badge not on floor? → renderFloor patch only tags first seat of group
-  - Live floor total looks high mid-session? → it worst-cases at adult rate.
-    The real bill shown at checkout uses the correct mix. This is intentional
-    (safer to overestimate live and settle down at checkout).
-
-  TO CHANGE THE ASSUMPTION OF "FIRST N ARE KIDS"
-  Currently the code treats persons [0..kids-1] as kids. If you want
-  per-person selection (which kid is which seat), that's a bigger UI change
-  — tell me and I'll build it.
--->
-
-startApp();
 </script>
 </body>
 </html>
