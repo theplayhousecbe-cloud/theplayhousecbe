@@ -1498,7 +1498,7 @@ window._kidCharge = function(mins){
   if(mins <= 60) return r1;
   return r1 + (r2/60) * (mins - 60);
 };
-That's the only change — Math.ceil(...) → (...) in both functions. The inr() display function already does Math.round() for clean rupee display, so the bill shown to the customer will still look clean, but the underlying math won't inflate by rounding up each person's charge separately.
+
 
     // ─── 3. Override calcCheckoutCharge — main billing function ───
     // First `kids` persons in the group are kids, rest are adults.
