@@ -1469,9 +1469,9 @@ function closeModal(){
 setInterval(()=>{tickUpdate();if(currentView==='report')renderReport();},1000);
 setTimeout(()=>{checkExportBanner();},1500);
 
-async function startApp(){await loadAll();renderStats();renderFloor();checkExportBanner();} 
+async function startApp(){await loadAll();renderStats();renderFloor();checkExportBanner();}
 startApp();
-  // ═══ KIDS PRICING OVERRIDE v4.4 ═══
+ // ═══ KIDS PRICING OVERRIDE v4.4 ═══
 // Adults: ₹149 flat 1st hr, then ₹99/hr pro-rata
 // Kids (under 10): ₹99 flat 1st hr, then ₹99/hr pro-rata
 (function(){
