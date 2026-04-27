@@ -1486,18 +1486,19 @@ startApp();
     if(!settings.kidRatePerHour)   settings.kidRatePerHour   =  99;
 
     // ─── 2. Per-person charge helpers ───
-    window._adultCharge = function(mins){
-      var r1 = settings.firstHourRate || 149;
-      var r2 = settings.ratePerHour   ||  99;
-      if(mins <= 60) return r1;
-      return Math.ceil(r1 + (r2/60) * (mins - 60));
-    };
-    window._kidCharge = function(mins){
-      var r1 = settings.kidFirstHourRate || 99;
-      var r2 = settings.kidRatePerHour   || 99;
-      if(mins <= 60) return r1;
-      return Math.ceil(r1 + (r2/60) * (mins - 60));
-    };
+  window._adultCharge = function(mins){
+  var r1 = settings.firstHourRate || 149;
+  var r2 = settings.ratePerHour   ||  99;
+  if(mins <= 60) return r1;
+  return r1 + (r2/60) * (mins - 60);
+};
+window._kidCharge = function(mins){
+  var r1 = settings.kidFirstHourRate || 99;
+  var r2 = settings.kidRatePerHour   || 99;
+  if(mins <= 60) return r1;
+  return r1 + (r2/60) * (mins - 60);
+};
+That's the only change — Math.ceil(...) → (...) in both functions. The inr() display function already does Math.round() for clean rupee display, so the bill shown to the customer will still look clean, but the underlying math won't inflate by rounding up each person's charge separately.
 
     // ─── 3. Override calcCheckoutCharge — main billing function ───
     // First `kids` persons in the group are kids, rest are adults.
