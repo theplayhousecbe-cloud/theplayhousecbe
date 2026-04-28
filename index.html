@@ -281,7 +281,7 @@ function showNavLockToast(){const t=document.getElementById('nav-lock-toast');t.
 function lockNav(){_receiptActive=true;document.querySelectorAll('.hnbtn,.reset-btn').forEach(b=>b.classList.add('nav-locked'));}
 function unlockNav(){_receiptActive=false;document.querySelectorAll('.hnbtn,.reset-btn').forEach(b=>b.classList.remove('nav-locked'));}
 
-// ═══ PIN ═══
+// ═══ PIN ═══/
 function requirePIN(title,callback){
   if(!settings.pin){callback();return;}
   _pinCallback=callback;_pinValue='';_pinActive=true;
