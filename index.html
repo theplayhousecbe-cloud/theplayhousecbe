@@ -684,7 +684,11 @@ function doCheckout(gid){
     d.setHours(parseInt(parts[0]),parseInt(parts[1]),0,0);
     if(d.getTime()>coInfo.t0&&d.getTime()<=Date.now())exitTime=d.getTime();
   }
-  window._overrideExitTime=exitTime; }
+  window._overrideExitTime=exitTime;
+  var phone=document.getElementById('co-phone')?.value.trim()||'';
+  if(phone&&!/^[0-9]{10}$/.test(phone)){alert('Enter valid 10-digit phone or leave blank.');return;}
+  finalizeCheckout(gid,phone);
+}
 
 
 function finalizeCheckout(gid,phone=''){
@@ -725,7 +729,11 @@ function openEditSession(gid){
       <label class="flabel">👥 Persons <span style="font-size:10px;color:var(--text3);font-weight:400;text-transform:none">(now ${s0.groupSize} · ${avail} free seats)</span></label>
       <div class="counter"><button class="cbtn" onclick="chgEsP(-1)">−</button><span class="cval" id="es-p">${s0.groupSize}</span><button class="cbtn" onclick="chgEsP(1)">+</button><span style="font-size:11px;color:var(--text3)" id="es-p-hint"></span></div>
     </div>
-    <div class="hint-box">Reducing persons frees extra seats. Increasing books adjacent free seats.</div>
+  <div class="hint-box">Reducing persons frees extra seats. Increasing books adjacent free seats.</div>
+    <div class="fgrp">
+      <label class="flabel">Exit time (optional — fills checkout time)</label>
+      <input id="es-exit-time" type="time" value="${new Date().toTimeString().slice(0,5)}" style="width:140px">
+    </div>
     <button class="btn-pri" style="margin-top:0" onclick="doEditSession('${gid}')">Save Changes</button>
     <button class="btn-pri red" onclick="confirmCancelSession('${gid}')">✕ Cancel Session (No Charge)</button>
     <button class="btn-sec" onclick="openCheckout('${gid}')">← Back to Checkout</button>`);
@@ -741,8 +749,11 @@ function doEditSession(gid){
   if(newPersons<currentPersons){const toFree=grp.slice(newPersons).map(s=>s.id);seats=seats.map(s=>{if(s.groupId===gid&&toFree.includes(s.id))return{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0,earlyOuts:{}};if(s.groupId===gid)return{...s,name:name||s.name,groupSize:newPersons,...(newT0?{t0:newT0}:{})};return s;});}
   else if(newPersons>currentPersons){const needed=newPersons-currentPersons,refId=grp[grp.length-1].id;const free=seats.filter(s=>!s.occupied&&!s.blocked).sort((a,b)=>{const ai=a.id>refId?a.id-refId:a.id+TOTAL_SEATS,bi=b.id>refId?b.id-refId:b.id+TOTAL_SEATS;return ai-bi;});if(free.length<needed){alert(`Only ${free.length} free seat(s).`);return;}const toOcc=free.slice(0,needed).map(s=>s.id),t0use=newT0||grp[0].t0;seats=seats.map(s=>{if(toOcc.includes(s.id))return{...s,occupied:true,name:name||grp[0].name,t0:t0use,groupId:gid,groupSize:newPersons,earlyOuts:{}};if(s.groupId===gid)return{...s,name:name||s.name,groupSize:newPersons,...(newT0?{t0:newT0}:{})};return s;});}
   else{seats=seats.map(s=>s.groupId===gid?{...s,name:name||s.name,...(newT0&&newT0>0?{t0:newT0}:{})}:s);}
-  if(coInfo&&coInfo.gid===gid){coInfo.persons=newPersons;if(newT0)coInfo.t0=newT0;}
+ if(coInfo&&coInfo.gid===gid){coInfo.persons=newPersons;if(newT0)coInfo.t0=newT0;}
+  var esExit=document.getElementById('es-exit-time');
+  if(esExit&&esExit.value){var ed=new Date();var ep=esExit.value.split(':');ed.setHours(parseInt(ep[0]),parseInt(ep[1]),0,0);if(ed.getTime()>(newT0||grp[0].t0)&&ed.getTime()<=Date.now())window._pendingExitTime=ed.getTime();}
   saveAll();closeModal();if(currentView==='floor')renderFloor();
+  if(window._pendingExitTime){var gg=gid;setTimeout(function(){openCheckout(gg);var ci=document.getElementById('co-exit-time');if(ci){var dt=new Date(window._pendingExitTime);ci.value=String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');}window._pendingExitTime=null;},200);}
 }
 function confirmCancelSession(gid){const grp=seats.filter(s=>s.groupId===gid),s0=grp[0];showModal(`<h3>Cancel Session?</h3><div class="warn-box">⚠ Frees all ${s0.groupSize} seat(s) with NO charge.</div><button class="btn-pri red" style="margin-top:0" onclick="doCancelSession('${gid}')">Yes — No Charge</button><button class="btn-sec" onclick="openCheckout('${gid}')">← Back to Checkout</button>`);}
 function doCancelSession(gid){seats=seats.map(s=>s.groupId===gid?{...s,occupied:false,name:'',t0:null,groupId:null,groupSize:0,earlyOuts:{}}:s);delete groupColorMap[gid];cartItems={};coInfo=null;saveAll();closeModal();if(currentView==='floor')renderFloor();}
