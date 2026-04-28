@@ -684,7 +684,7 @@ function doCheckout(gid){
     d.setHours(parseInt(parts[0]),parseInt(parts[1]),0,0);
     if(d.getTime()>coInfo.t0&&d.getTime()<=Date.now())exitTime=d.getTime();
   }
-  window._overrideExitTime=exitTime;  
+  window._overrideExitTime=exitTime; }
 
 
 function finalizeCheckout(gid,phone=''){
