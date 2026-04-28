@@ -1316,7 +1316,8 @@ function printR(txId){
   <div class="row"><span class="name">Check-in</span><span class="amt">${inT}</span></div>
   <div class="row"><span class="name">Check-out</span><span class="amt">${outT}</span></div>
   <div class="row"><span class="name">Duration</span><span class="amt">${fmtMins(tx.t1-tx.t0)}</span></div>
-  <div class="row"><span class="name">Rate</span><span class="amt">Rs.${settings.ratePerHour}/hr</span></div>
+<div class="row"><span class="name">Rate (Adult 1st hr)</span><span class="amt">Rs.${settings.firstHourRate||149}</span></div>
+<div class="row"><span class="name">Rate (after 1st hr)</span><span class="amt">Rs.${settings.ratePerHour||99}/hr</span></div>
   <div class="divider-single"></div>
   ${seatBreakdownRows}
   ${foodRows}
