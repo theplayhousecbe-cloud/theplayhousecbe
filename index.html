@@ -662,28 +662,30 @@ function saveEarlyOuts(gid){openCheckout(gid);}
 
 function chgCart(itemId,d){cartItems[itemId]=Math.max(0,(cartItems[itemId]||0)+d);if(!cartItems[itemId])delete cartItems[itemId];const el=document.getElementById('cart-'+itemId);if(el)el.textContent=cartItems[itemId]||0;refreshCoTotals();}
 function refreshCoTotals(){
-  if(!coInfo) return;
-  var exitInput = document.getElementById('co-exit-time');
-  var now = Date.now();
-  if(exitInput && exitInput.value){
-    var d = new Date();
-    var parts = exitInput.value.split(':');
-    d.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
-    if(d.getTime() > coInfo.t0) now = d.getTime();
+  if(!coInfo)return;
+  var exitInput=document.getElementById('co-exit-time');
+  var now=Date.now();
+  if(exitInput&&exitInput.value){
+    var d=new Date();var parts=exitInput.value.split(':');
+    d.setHours(parseInt(parts[0]),parseInt(parts[1]),0,0);
+    if(d.getTime()>coInfo.t0)now=d.getTime();
   }
-  const sc = calcCheckoutCharge(coInfo.t0, coInfo.persons, coInfo.earlyOuts);
-  // rest unchanged...
+  const sc=calcCheckoutCharge(coInfo.t0,coInfo.persons,coInfo.earlyOuts);
+  const ao=calcCartTotal(),total=sc+ao;
+  const dur=document.getElementById('co-d'),s=document.getElementById('co-sc'),a=document.getElementById('co-ao'),t=document.getElementById('co-total'),b=document.getElementById('co-btn');
+  if(dur)dur.textContent=fmtDur(coInfo.t0);if(s)s.textContent=inr(sc);if(a)a.textContent=inr(ao);if(t)t.textContent=inr(total);if(b)b.textContent=`Confirm Checkout — ${inr(total)}`;
+}
 function selM(m){selectedMethod=m;['cash','upi','card'].forEach(x=>{const el=document.getElementById('pm-'+x);if(el)el.classList.toggle('sel',x===m);});}
 function doCheckout(gid){
-  var exitInput = document.getElementById('co-exit-time');
-  var exitTime = Date.now();
-  if(exitInput && exitInput.value){
-    var d = new Date();
-    var parts = exitInput.value.split(':');
-    d.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
-    if(d.getTime() > coInfo.t0 && d.getTime() <= Date.now()) exitTime = d.getTime();
+  var exitInput=document.getElementById('co-exit-time');
+  var exitTime=Date.now();
+  if(exitInput&&exitInput.value){
+    var d=new Date();var parts=exitInput.value.split(':');
+    d.setHours(parseInt(parts[0]),parseInt(parts[1]),0,0);
+    if(d.getTime()>coInfo.t0&&d.getTime()<=Date.now())exitTime=d.getTime();
   }
-  window._overrideExitTime = exitTime;
+  window._overrideExitTime=exitTime;  
+
 
 function finalizeCheckout(gid,phone=''){
   const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;
