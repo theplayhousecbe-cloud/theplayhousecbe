@@ -574,7 +574,8 @@ function openCheckout(gid){
       <div class="brow"><span class="lbl">Customer</span><span class="val">${s0.name}</span></div>
       <div class="brow"><span class="lbl">Seats</span><span class="val" style="font-size:10px">${seatNums}</span></div>
       <div class="brow"><span class="lbl">Check-in</span><span class="val">${new Date(s0.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span></div>
-      <div class="brow"><span class="lbl">Duration</span><span class="val" id="co-d">${fmtDur(s0.t0)}</span></div>
+     <div class="brow"><span class="lbl">Duration</span><span class="val" id="co-d">${fmtDur(s0.t0)}</span></div>
+<div class="brow"><span class="lbl">Exit time</span><span class="val"><input id="co-exit-time" type="time" value="${new Date().toTimeString().slice(0,5)}" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:inherit;font-size:12px;outline:none" oninput="refreshCoTotals()"></span></div></div>
       <div class="brow"><span class="lbl">Seat charge</span><span class="val" id="co-sc">${inr(sc)}</span></div>
       ${earlyCount>0?`<div class="brow"><span class="lbl" style="color:var(--green)">Early outs</span><span class="val" style="color:var(--green)">${earlyCount} person${earlyCount>1?'s':''} · ${remainingPersons} still here</span></div>`:''}
       <div class="brow"><span class="lbl">Food & drinks</span><span class="val" id="co-ao">₹0</span></div>
@@ -661,33 +662,39 @@ function saveEarlyOuts(gid){openCheckout(gid);}
 
 function chgCart(itemId,d){cartItems[itemId]=Math.max(0,(cartItems[itemId]||0)+d);if(!cartItems[itemId])delete cartItems[itemId];const el=document.getElementById('cart-'+itemId);if(el)el.textContent=cartItems[itemId]||0;refreshCoTotals();}
 function refreshCoTotals(){
-  if(!coInfo)return;
-  const sc=calcCheckoutCharge(coInfo.t0,coInfo.persons,coInfo.earlyOuts);
-  const ao=calcCartTotal(),total=sc+ao;
-  const d=document.getElementById('co-d'),s=document.getElementById('co-sc'),a=document.getElementById('co-ao'),t=document.getElementById('co-total'),b=document.getElementById('co-btn');
-  if(d)d.textContent=fmtDur(coInfo.t0);if(s)s.textContent=inr(sc);if(a)a.textContent=inr(ao);if(t)t.textContent=inr(total);if(b)b.textContent=`Confirm Checkout — ${inr(total)}`;
-}
+  if(!coInfo) return;
+  var exitInput = document.getElementById('co-exit-time');
+  var now = Date.now();
+  if(exitInput && exitInput.value){
+    var d = new Date();
+    var parts = exitInput.value.split(':');
+    d.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+    if(d.getTime() > coInfo.t0) now = d.getTime();
+  }
+  const sc = calcCheckoutCharge(coInfo.t0, coInfo.persons, coInfo.earlyOuts);
+  // rest unchanged...
 function selM(m){selectedMethod=m;['cash','upi','card'].forEach(x=>{const el=document.getElementById('pm-'+x);if(el)el.classList.toggle('sel',x===m);});}
 function doCheckout(gid){
-  if(window._coIv){clearInterval(window._coIv);window._coIv=null;}
-  const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;
-  const s0=grp[0],persons=s0.groupSize;
-  const earlyOuts=coInfo&&coInfo.gid===gid?coInfo.earlyOuts:s0.earlyOuts||{};
-  const sc=calcCheckoutCharge(s0.t0,persons,earlyOuts);
-  const ao=calcCartTotal(),total=sc+ao;
-  const phone=document.getElementById('co-phone')?.value.trim()||'';
-  if(phone&&!/^[0-9]{10}$/.test(phone)){alert('Enter valid 10-digit phone or leave blank.');return;}
-  const threshold=settings.largeBillThreshold||500;
-  if(total>=threshold){showModal(`<h3 style="text-align:center">Confirm Payment</h3><div class="big-bill"><div class="big-bill-amt">${inr(total)}</div><div class="big-bill-lbl">${s0.name} · ${persons} seat${persons>1?'s':''} · ${selectedMethod.toUpperCase()}</div></div><div class="warn-box" style="text-align:center">Confirm with customer before proceeding.</div><button class="btn-pri" onclick="finalizeCheckout('${gid}','${phone}')">✓ Confirmed — Proceed</button><button class="btn-sec" onclick="openCheckout('${gid}')">← Go Back</button>`);return;}
-  finalizeCheckout(gid,phone);
-}
+  var exitInput = document.getElementById('co-exit-time');
+  var exitTime = Date.now();
+  if(exitInput && exitInput.value){
+    var d = new Date();
+    var parts = exitInput.value.split(':');
+    d.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+    if(d.getTime() > coInfo.t0 && d.getTime() <= Date.now()) exitTime = d.getTime();
+  }
+  window._overrideExitTime = exitTime;
+
 function finalizeCheckout(gid,phone=''){
   const grp=seats.filter(s=>s.groupId===gid);if(!grp.length)return;
   const s0=grp[0],persons=s0.groupSize;
   const earlyOuts=coInfo&&coInfo.gid===gid?coInfo.earlyOuts:s0.earlyOuts||{};
   const sc=calcCheckoutCharge(s0.t0,persons,earlyOuts);
   const ao=calcCartTotal(),addons=getCartAddons();
-  const personBreakdown=[];const now=Date.now();const r=settings.ratePerHour;
+  const personBreakdown=[];
+  const now = window._overrideExitTime || Date.now();
+  window._overrideExitTime = null; // clear after use
+  const r=settings.ratePerHour;
   for(let i=0;i<persons;i++){
     const endTime=earlyOuts[i]||now;
     const mins=(endTime-s0.t0)/60000;
