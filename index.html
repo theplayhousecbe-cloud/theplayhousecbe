@@ -575,7 +575,7 @@ function openCheckout(gid){
       <div class="brow"><span class="lbl">Seats</span><span class="val" style="font-size:10px">${seatNums}</span></div>
       <div class="brow"><span class="lbl">Check-in</span><span class="val">${new Date(s0.t0).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</span></div>
      <div class="brow"><span class="lbl">Duration</span><span class="val" id="co-d">${fmtDur(s0.t0)}</span></div>
-<div class="brow"><span class="lbl">Exit time</span><span class="val"><input id="co-exit-time" type="time" value="${new Date().toTimeString().slice(0,5)}" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:inherit;font-size:12px;outline:none" oninput="refreshCoTotals()"></span></div></div>
+<div class="brow"><span class="lbl">Exit time</span><span class="val"><input id="co-exit-time" type="time" value="${new Date().toTimeString().slice(0,5)}" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:inherit;font-size:12px;outline:none" oninput="refreshCoTotals()"></span></div>
       <div class="brow"><span class="lbl">Seat charge</span><span class="val" id="co-sc">${inr(sc)}</span></div>
       ${earlyCount>0?`<div class="brow"><span class="lbl" style="color:var(--green)">Early outs</span><span class="val" style="color:var(--green)">${earlyCount} person${earlyCount>1?'s':''} · ${remainingPersons} still here</span></div>`:''}
       <div class="brow"><span class="lbl">Food & drinks</span><span class="val" id="co-ao">₹0</span></div>
