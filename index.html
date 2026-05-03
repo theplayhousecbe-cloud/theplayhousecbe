@@ -1522,10 +1522,11 @@ window._kidCharge = function(mins){
 
     // ─── 3. Override calcCheckoutCharge — main billing function ───
     // First `kids` persons in the group are kids, rest are adults.
-    window.calcCheckoutCharge = function(t0, persons, earlyOuts, kidsOverride){
-      var kids = kidsOverride;
-      if(kids == null && coInfo && coInfo.kids != null) kids = coInfo.kids;
-      if(kids == null) kids = 0;
+  window.calcCheckoutCharge = function(t0, persons, earlyOuts, kidsOverride){
+  var kids = kidsOverride;
+  if(kids == null) kids = window._checkoutKids;
+  if(kids == null && coInfo && coInfo.kids != null) kids = coInfo.kids;
+  if(kids == null) kids = 0;
       kids = Math.min(kids, persons);
       var now = Date.now();
       var total = 0;
@@ -1625,45 +1626,50 @@ window._kidCharge = function(mins){
     };
 
     // ─── 7. Patch openCheckout — load kids into coInfo, show Mix row ───
-    var _origOpenCheckout = openCheckout;
-    window.openCheckout = function(gid){
-      _origOpenCheckout(gid);
-      var grp = seats.filter(function(s){return s.groupId === gid;});
-      if(!grp.length) return;
-      var kids   = grp[0].kids   || 0;
-      var adults = grp[0].adults || (grp[0].groupSize - kids);
-      if(coInfo && coInfo.gid === gid){
-        coInfo.kids   = kids;
-        coInfo.adults = adults;
+ var _origOpenCheckout = openCheckout;
+window.openCheckout = function(gid){
+  _origOpenCheckout(gid);
+  var grp = seats.filter(function(s){return s.groupId === gid;});
+  if(!grp.length) return;
+  var kids   = grp[0].kids   || 0;
+  var adults = grp[0].adults || (grp[0].groupSize - kids);
+  window._checkoutKids = kids;
+  if(coInfo && coInfo.gid === gid){
+    coInfo.kids   = kids;
+    coInfo.adults = adults;
+  }
+  setTimeout(function(){
+    if(typeof refreshCoTotals === 'function') refreshCoTotals();
+    if(kids > 0){
+      var billBox = document.querySelector('.overlay .bill-box');
+      if(billBox && !billBox.querySelector('[data-kids-row]')){
+        var seatRow = billBox.querySelector('.brow:nth-child(2)');
+        var row = document.createElement('div');
+        row.className = 'brow';
+        row.setAttribute('data-kids-row','1');
+        row.innerHTML =
+          '<span class="lbl">Mix</span>' +
+          '<span class="val" style="font-size:11px;color:var(--blue)">' +
+            adults + ' adult' + (adults!==1?'s':'') + ' · ' +
+            kids   + ' kid'   + (kids!==1?'s':'') +
+          '</span>';
+        if(seatRow) seatRow.insertAdjacentElement('afterend', row);
       }
-      setTimeout(function(){
-        if(typeof refreshCoTotals === 'function') refreshCoTotals();
-        if(kids > 0){
-          var billBox = document.querySelector('.overlay .bill-box');
-          if(billBox && !billBox.querySelector('[data-kids-row]')){
-            var seatRow = billBox.querySelector('.brow:nth-child(2)');
-            var row = document.createElement('div');
-            row.className = 'brow';
-            row.setAttribute('data-kids-row','1');
-            row.innerHTML =
-              '<span class="lbl">Mix</span>' +
-              '<span class="val" style="font-size:11px;color:var(--blue)">' +
-                adults + ' adult' + (adults!==1?'s':'') + ' · ' +
-                kids   + ' kid'   + (kids!==1?'s':'') +
-              '</span>';
-            if(seatRow) seatRow.insertAdjacentElement('afterend', row);
-          }
-        }
-      }, 30);
-    };
+    }
+  }, 30);
+};
 
     // ─── 8. Patch finalizeCheckout — rebuild personBreakdown with kid/adult flags ───
     var _origFinalize = finalizeCheckout;
-    window.finalizeCheckout = function(gid, phone){
-      _origFinalize(gid, phone || '');
-      var tx = txns[0];
-      if(!tx) return;
-      var kids = (coInfo && coInfo.kids) || tx.kids || 0;
+  window.finalizeCheckout = function(gid, phone){
+  var grp = seats.filter(function(s){return s.groupId === gid;});
+  var kids = (coInfo && coInfo.gid===gid && coInfo.kids) || (grp[0] && grp[0].kids) || 0;
+  window._checkoutKids = kids;
+  _origFinalize(gid, phone || '');
+  window._checkoutKids = null;
+  var tx = txns[0];
+  if(!tx) return;
+  kids = tx.kids || kids || 0;
       // coInfo gets cleared by the original — fall back to seat info
       if(!kids){
         // No way to recover; assume 0 kids (won't happen in normal flow)
