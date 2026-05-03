@@ -1299,23 +1299,21 @@ function printR(txId){
   const timeStr=new Date(tx.t1).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
 
   // Build per-person breakdown rows
-  let seatBreakdownRows='';
+ let seatBreakdownRows='';
   if(tx.personBreakdown&&tx.personBreakdown.some(p=>p.early)){
-    seatBreakdownRows=`<div class="section-hdr">Seat Charge Breakdown</div>`;
+    seatBreakdownRows=`<div class="section-hdr">Per-Person Breakdown</div><table style="width:100%;border-collapse:collapse;font-size:13px;font-weight:700">`;
     tx.personBreakdown.forEach(p=>{
       const endT=new Date(p.endTime).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
-      seatBreakdownRows+=`<div class="row sub"><span class="name">Person ${p.person}${p.early?' → left '+endT:''}</span><span class="amt">Rs.${Math.round(p.charge).toLocaleString('en-IN')}</span></div>`;
+      seatBreakdownRows+=`<tr><td style="padding:4px 2px;width:65%">P${p.person}${p.early?' (left '+endT+')':''}</td><td style="padding:4px 2px;text-align:right">Rs.${Math.round(p.charge).toLocaleString('en-IN')}</td></tr>`;
     });
-    seatBreakdownRows+=`<div class="row bold" style="margin-top:3px"><span class="name">Seat subtotal</span><span class="amt">Rs.${Math.round(tx.seatCharge).toLocaleString('en-IN')}</span></div>`;
-  } else {
-    seatBreakdownRows=`<div class="row bold"><span class="name">Seat charge</span><span class="amt">Rs.${Math.round(tx.seatCharge).toLocaleString('en-IN')}</span></div>`;
+    seatBreakdownRows+=`<tr style="border-top:1.5px solid #999"><td style="padding:5px 2px;font-size:14px">Seat Total</td><td style="padding:5px 2px;text-align:right;font-size:14px">Rs.${Math.round(tx.seatCharge).toLocaleString('en-IN')}</td></tr></table>`;
   }
-
   // Food & drinks
-  let foodRows='';
+ let foodRows='';
   if(tx.addons&&tx.addons.length){
-    foodRows=`<div class="divider-dash"></div><div class="section-hdr">Food & Beverages</div>`;
-    tx.addons.forEach(a=>{foodRows+=`<div class="row"><span class="name">${a.name} <span style="color:#777">×${a.qty}</span></span><span class="amt">Rs.${Math.round(a.price*a.qty).toLocaleString('en-IN')}</span></div>`;});
+    foodRows=`<div class="divider-dash"></div><div class="section-hdr">Food & Beverages</div><table style="width:100%;border-collapse:collapse;font-size:13px;font-weight:700">`;
+    tx.addons.forEach(a=>{foodRows+=`<tr><td style="padding:4px 2px;width:55%">${a.name}</td><td style="padding:4px 2px;text-align:center">x${a.qty}</td><td style="padding:4px 2px;text-align:right">Rs.${Math.round(a.price*a.qty).toLocaleString('en-IN')}</td></tr>`;});
+    foodRows+=`</table>`;
   }
 
   const html=`<!DOCTYPE html><html><head><title>${settings.cafeName} - Receipt</title><meta charset="UTF-8">
@@ -1331,14 +1329,15 @@ function printR(txId){
     <div class="meta" style="margin-top:2px">Seats: ${sl} &nbsp;·&nbsp; ${tx.persons} person${tx.persons>1?'s':''}</div>
   </div>
   <div class="divider-dash"></div>
-  <div class="section-hdr">Session Details</div>
-  <div class="row"><span class="name">Check-in</span><span class="amt">${inT}</span></div>
-  <div class="row"><span class="name">Check-out</span><span class="amt">${outT}</span></div>
-  <div class="row"><span class="name">Duration</span><span class="amt">${fmtMins(tx.t1-tx.t0)}</span></div>
-<div class="row"><span class="name">Rate (Adult 1st hr)</span><span class="amt">Rs.${settings.firstHourRate||149}</span></div>
-<div class="row"><span class="name">Rate (after 1st hr)</span><span class="amt">Rs.${settings.ratePerHour||99}/hr</span></div>
-  <div class="divider-single"></div>
-  ${seatBreakdownRows}
+ <div class="section-hdr">Session Details</div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;font-weight:700">
+    <tr><td style="padding:4px 2px;color:#333;width:55%">Check-in</td><td style="padding:4px 2px;text-align:right">${inT}</td></tr>
+    <tr><td style="padding:4px 2px;color:#333">Check-out</td><td style="padding:4px 2px;text-align:right">${outT}</td></tr>
+    <tr><td style="padding:4px 2px;color:#333">Duration</td><td style="padding:4px 2px;text-align:right">${fmtMins(tx.t1-tx.t0)}</td></tr>
+    <tr><td style="padding:4px 2px;color:#333">Adult 1st hr</td><td style="padding:4px 2px;text-align:right">Rs.${settings.firstHourRate||149}</td></tr>
+    <tr><td style="padding:4px 2px;color:#333">After 1st hr</td><td style="padding:4px 2px;text-align:right">Rs.${settings.ratePerHour||99}/hr</td></tr>
+    <tr style="border-top:1.5px solid #999"><td style="padding:6px 2px;font-size:14px">Seat Charge</td><td style="padding:6px 2px;text-align:right;font-size:14px">Rs.${Math.round(tx.seatCharge).toLocaleString('en-IN')}</td></tr>
+  </table>
   ${foodRows}
   <div class="divider-dash"></div>
   <div class="center"><span class="pay-chip">${tx.method.toUpperCase()}</span></div>
